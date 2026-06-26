@@ -1,4 +1,4 @@
-
+import { useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 
 const navigationItems = [
@@ -10,44 +10,52 @@ const navigationItems = [
 ];
 
 export const AppLayout = ({ activeNavigationTab, setActiveNavigationTab, currentUser, onLogout, children }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const userInitial = currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
 
   return (
     <div className="app-container">
       {/* Mobile Top Header */}
       <header className="mobile-top-header">
-        <div className="mobile-brand">
-          <div className="mobile-brand-icon" style={{ borderRadius: '50%', width: '28px', height: '28px', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 18V9a6 6 0 0 1 12 0v9" />
-              <path d="M3 18h18a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z" />
-            </svg>
-          </div>
-          <span className="mobile-brand-title" style={{ fontWeight: '800' }}>PlateWise</span>
-        </div>
-        
-        <div className="mobile-user-actions">
-          <div className="mobile-user-avatar" title={currentUser?.name || 'User'}>
-            {userInitial}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button 
             type="button" 
-            className="mobile-logout-btn" 
-            onClick={onLogout}
-            title="Log Out"
+            className="mobile-hamburger-btn"
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="Open menu"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
-            <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>Sign Out</span>
           </button>
+          <div className="mobile-brand">
+            <div className="mobile-brand-icon" style={{ borderRadius: '50%', width: '28px', height: '28px', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 18V9a6 6 0 0 1 12 0v9" />
+                <path d="M3 18h18a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z" />
+              </svg>
+            </div>
+            <span className="mobile-brand-title" style={{ fontWeight: '800' }}>PlateWise</span>
+          </div>
         </div>
       </header>
 
-      {/* Desktop Sidebar */}
-      <aside className="desktop-sidebar">
+      {/* Sidebar Overlay (Mobile Only) */}
+      {isMobileMenuOpen && (
+        <div className="mobile-sidebar-overlay" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
+
+      {/* Unified Sidebar */}
+      <aside className={`desktop-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+        <button 
+          className="mobile-sidebar-close" 
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-label="Close menu"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
         <div className="brand-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}>
           <div className="brand-icon" style={{ backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0 }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -63,7 +71,7 @@ export const AppLayout = ({ activeNavigationTab, setActiveNavigationTab, current
         
         <nav className="sidebar-navigation">
           {navigationItems.map(item => (
-            <button key={item.id} className={`nav-item ${activeNavigationTab === item.id ? 'active' : ''}`} onClick={() => setActiveNavigationTab(item.id)}>
+            <button key={item.id} className={`nav-item ${activeNavigationTab === item.id ? 'active' : ''}`} onClick={() => { setActiveNavigationTab(item.id); setIsMobileMenuOpen(false); }}>
               <span className="nav-icon">{item.icon}</span><span>{item.label}</span>
             </button>
           ))}
@@ -113,15 +121,6 @@ export const AppLayout = ({ activeNavigationTab, setActiveNavigationTab, current
       
       <main className="main-content">{children}</main>
       
-      {/* Mobile Bottom Bar */}
-      <nav className="mobile-bottom-bar">
-        {navigationItems.map(item => (
-          <button key={item.id} className={`mobile-nav-item ${activeNavigationTab === item.id ? 'active' : ''}`} onClick={() => setActiveNavigationTab(item.id)}>
-            <span className="nav-icon">{item.icon}</span><span>{item.label}</span>
-          </button>
-        ))}
-        <ThemeToggle className="mobile-theme-toggle" />
-      </nav>
     </div>
   );
 };

@@ -163,7 +163,18 @@ public class SpoonacularRecipeIntegrationService {
             }
         }
 
-        return results;
+        // Enforce strict AND logic: every requested ingredient must be present in the recipe
+        return results.stream().filter(recipe -> {
+            for (String reqIng : ingredients) {
+                String reqLower = reqIng.trim().toLowerCase();
+                boolean hasIng = recipe.getRecipeIngredients().stream()
+                        .anyMatch(ri -> ri.getIngredientName().toLowerCase().contains(reqLower));
+                if (!hasIng) {
+                    return false;
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
     }
 
     /**
@@ -396,16 +407,25 @@ public class SpoonacularRecipeIntegrationService {
     }
 
     private List<Recipe> fetchRecipesByIngredientsLocal(List<String> ingredients) {
-        List<Recipe> matching = null;
-        for (String ingredient : ingredients) {
-            List<Recipe> recipes = recipeRepository.findDistinctByRecipeIngredientsIngredientNameContainingIgnoreCase(ingredient.trim());
-            if (matching == null) {
-                matching = new ArrayList<>(recipes);
-            } else {
-                matching.retainAll(recipes);
-            }
+        if (ingredients == null || ingredients.isEmpty()) {
+            return new ArrayList<>();
         }
-        return matching != null ? matching : new ArrayList<>();
+        
+        // Start with recipes that match the first ingredient to reduce the dataset
+        List<Recipe> matching = new ArrayList<>(recipeRepository.findDistinctByRecipeIngredientsIngredientNameContainingIgnoreCase(ingredients.get(0).trim()));
+        
+        // Filter to ensure ALL remaining ingredients are present
+        return matching.stream().filter(recipe -> {
+            for (int i = 1; i < ingredients.size(); i++) {
+                String reqLower = ingredients.get(i).trim().toLowerCase();
+                boolean hasIng = recipe.getRecipeIngredients().stream()
+                        .anyMatch(ri -> ri.getIngredientName().toLowerCase().contains(reqLower));
+                if (!hasIng) {
+                    return false;
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
     }
 
     private List<Recipe> mergeWithLocalManualRecipes(List<Recipe> spoonRecipes, String query, String category) {
