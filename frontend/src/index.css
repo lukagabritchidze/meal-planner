@@ -1556,7 +1556,7 @@ body,
     padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
   }
 
-  .mobile-top-header { display: flex; }
+
   .page-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
   .page-header .btn { width: 100%; }
   .controls-bar { flex-direction: column; }
@@ -2468,6 +2468,9 @@ body.mobile-menu-open {
 /* Safe-area aware mobile top header (detailed layout in .mobile-top-header block above) */
 
 @media (max-width: 768px) {
+  /* Show the mobile top header (must come after base display:none at line ~1967) */
+  .mobile-top-header { display: flex; }
+
   /* Prevent iOS auto-zoom on focus by keeping inputs at >= 16px */
   .form-input, .form-select, .form-textarea, .search-input, .auth-input { font-size: 16px; }
 
