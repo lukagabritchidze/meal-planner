@@ -1,0 +1,27 @@
+# ===== Backend (Maven / Spring Boot) =====
+backend/target/
+*.jar
+*.war
+
+# Local SQLite dev databases (do not commit)
+*.db
+recipes.db
+
+# ===== Frontend (Node / Vite) =====
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# ===== Secrets / env =====
+.env
+*.env
+!*.env.example
+
+# ===== IDE / OS =====
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

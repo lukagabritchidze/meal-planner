@@ -1,0 +1,8 @@
+target/
+*.db
+.idea/
+.vscode/
+*.iml
+.git/
+.gitignore
+HELP.md
