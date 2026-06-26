@@ -1,7 +1,8 @@
 /**
  * Service layer for communicating with the Spring Boot REST API for Authentication.
  */
-const API_BASE_URL = 'http://localhost:8080/api/auth';
+const API_ROOT = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
+const API_BASE_URL = `${API_ROOT}/api/auth`;
 
 export const authApiService = {
   /**
