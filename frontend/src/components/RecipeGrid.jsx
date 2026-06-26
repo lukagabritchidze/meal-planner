@@ -247,10 +247,10 @@ export const RecipeGrid = ({
       {/* Grid Subtitle Header */}
       <div style={{ marginBottom: '1.25rem' }}>
         <span style={{ fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
-          FEATURED FROM HEARTH
+
         </span>
         <span style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
-          Search above or pick a category to discover thousands more recipes.
+          Search above or pick a category to discover more recipes.
         </span>
       </div>
 

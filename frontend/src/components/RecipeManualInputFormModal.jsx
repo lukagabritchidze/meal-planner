@@ -85,18 +85,18 @@ export const RecipeManualInputFormModal = ({ isOpen, onClose, onSave }) => {
 
     // Filter out blank inputs and format payload mapping
     const validIngredients = ingredients
-      .filter(ing => ing.ingredientName.trim() !== '')
-      .map(ing => ({
-        ingredientName: ing.ingredientName.trim(),
-        ingredientQuantityValue: parseFloat(ing.ingredientQuantityValue) || 1.0,
-        ingredientQuantityUnit: ing.ingredientQuantityUnit
+      .filter(ingredientItem => ingredientItem.ingredientName.trim() !== '')
+      .map(ingredientItem => ({
+        ingredientName: ingredientItem.ingredientName.trim(),
+        ingredientQuantityValue: parseFloat(ingredientItem.ingredientQuantityValue) || 1.0,
+        ingredientQuantityUnit: ingredientItem.ingredientQuantityUnit
       }));
 
     const validSteps = steps
-      .filter(st => st.instructionStepDescription.trim() !== '')
-      .map((st, idx) => ({
-        instructionStepOrder: idx + 1, // Set auto ordering indexes
-        instructionStepDescription: st.instructionStepDescription.trim()
+      .filter(instructionStep => instructionStep.instructionStepDescription.trim() !== '')
+      .map((instructionStep, index) => ({
+        instructionStepOrder: index + 1, // Set auto ordering indexes
+        instructionStepDescription: instructionStep.instructionStepDescription.trim()
       }));
 
     if (validIngredients.length === 0) {
@@ -170,8 +170,8 @@ export const RecipeManualInputFormModal = ({ isOpen, onClose, onSave }) => {
                   value={recipeCategory}
                   onChange={(e) => setRecipeCategory(e.target.value)}
                 >
-                  {categoryOptions.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  {categoryOptions.map(categoryOption => (
+                    <option key={categoryOption} value={categoryOption}>{categoryOption}</option>
                   ))}
                 </select>
               </div>
@@ -199,16 +199,16 @@ export const RecipeManualInputFormModal = ({ isOpen, onClose, onSave }) => {
                 </button>
               </div>
 
-              {ingredients.map((ing, idx) => (
-                <div key={idx} className="dynamic-row">
+              {ingredients.map((ingredientItem, index) => (
+                <div key={index} className="dynamic-row">
                   <div className="dynamic-row-input-group">
                     <input
                       type="text"
                       className="form-input"
                       style={{ padding: '0.5rem 0.75rem' }}
                       placeholder="Ingredient name (e.g. Milk)"
-                      value={ing.ingredientName}
-                      onChange={(e) => handleIngredientChange(idx, 'ingredientName', e.target.value)}
+                      value={ingredientItem.ingredientName}
+                      onChange={(e) => handleIngredientChange(index, 'ingredientName', e.target.value)}
                       required
                     />
                     <input
@@ -217,18 +217,18 @@ export const RecipeManualInputFormModal = ({ isOpen, onClose, onSave }) => {
                       className="form-input"
                       style={{ padding: '0.5rem 0.75rem' }}
                       placeholder="Qty (e.g. 2)"
-                      value={ing.ingredientQuantityValue}
-                      onChange={(e) => handleIngredientChange(idx, 'ingredientQuantityValue', e.target.value)}
+                      value={ingredientItem.ingredientQuantityValue}
+                      onChange={(e) => handleIngredientChange(index, 'ingredientQuantityValue', e.target.value)}
                       required
                     />
                     <select
                       className="form-select"
                       style={{ padding: '0.5rem 0.75rem' }}
-                      value={ing.ingredientQuantityUnit}
-                      onChange={(e) => handleIngredientChange(idx, 'ingredientQuantityUnit', e.target.value)}
+                      value={ingredientItem.ingredientQuantityUnit}
+                      onChange={(e) => handleIngredientChange(index, 'ingredientQuantityUnit', e.target.value)}
                     >
-                      {unitOptions.map(unit => (
-                        <option key={unit} value={unit}>{unit}</option>
+                      {unitOptions.map(unitOption => (
+                        <option key={unitOption} value={unitOption}>{unitOption}</option>
                       ))}
                     </select>
                   </div>
@@ -238,7 +238,7 @@ export const RecipeManualInputFormModal = ({ isOpen, onClose, onSave }) => {
                     className="btn-delete-icon"
                     disabled={ingredients.length === 1}
                     style={{ opacity: ingredients.length === 1 ? 0.3 : 1, cursor: ingredients.length === 1 ? 'not-allowed' : 'pointer' }}
-                    onClick={() => handleRemoveIngredientRow(idx)}
+                    onClick={() => handleRemoveIngredientRow(index)}
                     aria-label="Remove ingredient"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -258,17 +258,17 @@ export const RecipeManualInputFormModal = ({ isOpen, onClose, onSave }) => {
                 </button>
               </div>
 
-              {steps.map((st, idx) => (
-                <div key={idx} className="dynamic-row" style={{ alignItems: 'flex-start' }}>
-                  <span className="step-number-bubble" style={{ marginTop: '6px' }}>{idx + 1}</span>
+              {steps.map((instructionStep, index) => (
+                <div key={index} className="dynamic-row" style={{ alignItems: 'flex-start' }}>
+                  <span className="step-number-bubble" style={{ marginTop: '6px' }}>{index + 1}</span>
                   
                   <textarea
                     className="form-textarea"
                     rows="2"
                     style={{ padding: '0.5rem 0.75rem', flex: 1, resize: 'none' }}
                     placeholder="Describe this preparation step..."
-                    value={st.instructionStepDescription}
-                    onChange={(e) => handleStepChange(idx, e.target.value)}
+                    value={instructionStep.instructionStepDescription}
+                    onChange={(e) => handleStepChange(index, e.target.value)}
                     required
                   />
 
@@ -277,7 +277,7 @@ export const RecipeManualInputFormModal = ({ isOpen, onClose, onSave }) => {
                     className="btn-delete-icon"
                     disabled={steps.length === 1}
                     style={{ opacity: steps.length === 1 ? 0.3 : 1, cursor: steps.length === 1 ? 'not-allowed' : 'pointer', marginTop: '6px' }}
-                    onClick={() => handleRemoveStepRow(idx)}
+                    onClick={() => handleRemoveStepRow(index)}
                     aria-label="Remove step"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

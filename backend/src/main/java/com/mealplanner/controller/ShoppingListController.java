@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,17 +33,20 @@ public class ShoppingListController {
     }
 
     /**
-     * Retrieves a metric, aggregated shopping list for scheduled meals in a date range.
+     * Retrieves a metric, aggregated shopping list for the authenticated user's
+     * scheduled meals in a date range.
      *
+     * @param userId owning user's identifier (from the X-User-Id header)
      * @param startDate inclusive start date
      * @param endDate inclusive end date
      * @return department-grouped shopping list rows
      */
     @GetMapping
     public ResponseEntity<Map<String, List<ShoppingListItem>>> getShoppingList(
+            @RequestHeader("X-User-Id") Long userId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(shoppingListService.getShoppingList(startDate, endDate));
+        return ResponseEntity.ok(shoppingListService.getShoppingList(userId, startDate, endDate));
     }
 
     /**
@@ -56,13 +60,14 @@ public class ShoppingListController {
      */
     @PutMapping("/item/{ingredientId}/toggle")
     public ResponseEntity<ShoppingListCheckedState> toggleShoppingListItem(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long ingredientId,
             @RequestParam(value = "date", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         LocalDate anchorDate = date != null
                 ? date
                 : LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        return ResponseEntity.ok(shoppingListService.toggleCheckedState(ingredientId, anchorDate));
+        return ResponseEntity.ok(shoppingListService.toggleCheckedState(userId, ingredientId, anchorDate));
     }
 
     /**
@@ -74,9 +79,10 @@ public class ShoppingListController {
      */
     @DeleteMapping("/checked")
     public ResponseEntity<Void> clearCheckedItems(
+            @RequestHeader("X-User-Id") Long userId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        shoppingListService.clearCheckedStates(startDate, endDate);
+        shoppingListService.clearCheckedStates(userId, startDate, endDate);
         return ResponseEntity.noContent().build();
     }
 }

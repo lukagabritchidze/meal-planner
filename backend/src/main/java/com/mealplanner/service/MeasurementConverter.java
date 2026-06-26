@@ -9,11 +9,17 @@ import java.util.Map;
 /**
  * Converts ingredient measurements to the metric system.
  *
- * <p>Volume units are normalised to millilitres and simplified to litres when the
- * result reaches 1000 ml. Mass units are normalised to grams and simplified to
- * kilograms when the result reaches 1000 g. Units that are already metric pass
- * through unchanged, and count-based or unrecognised units (e.g. "cloves",
- * "pcs", "pinch") are returned untouched.</p>
+ * <p>Unambiguous liquid-volume units (fluid ounce, pint, quart, gallon, millilitre,
+ * litre) are normalised to millilitres and simplified to litres when the result
+ * reaches 1000 ml. Mass units are normalised to grams and simplified to kilograms
+ * when the result reaches 1000 g. Units that are already metric pass through
+ * unchanged.</p>
+ *
+ * <p>Household "scoop" units (teaspoon, tablespoon, cup) are intentionally NOT
+ * converted: in everyday recipes they are used for solids and produce as well as
+ * liquids (e.g. "2 cups spinach", "1 cup shredded cheese"), so turning them into
+ * millilitres is misleading. They are therefore treated like count-based units
+ * (e.g. "cloves", "pcs", "pinch") and returned untouched.</p>
  */
 @Component
 public class MeasurementConverter {
@@ -22,11 +28,10 @@ public class MeasurementConverter {
     private static final Map<String, Double> MASS_TO_GRAMS = new HashMap<>();
 
     static {
-        // Volume variants -> millilitres
-        registerAll(VOLUME_TO_ML, 4.929, "tsp", "teaspoon", "teaspoons");
-        registerAll(VOLUME_TO_ML, 14.787, "tbsp", "tablespoon", "tablespoons");
+        // Unambiguous liquid-volume variants -> millilitres.
+        // Note: teaspoon/tablespoon/cup are deliberately excluded (see class Javadoc),
+        // because they are commonly used to measure non-liquid ingredients too.
         registerAll(VOLUME_TO_ML, 29.574, "fl oz", "fluid ounce", "fluid ounces");
-        registerAll(VOLUME_TO_ML, 236.588, "cup", "cups");
         registerAll(VOLUME_TO_ML, 473.176, "pt", "pint", "pints");
         registerAll(VOLUME_TO_ML, 946.353, "qt", "quart", "quarts");
         registerAll(VOLUME_TO_ML, 3785.41, "gal", "gallon", "gallons");

@@ -46,8 +46,8 @@ export const ShoppingList = ({
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const data = await recipeManagementApiService.fetchShoppingList(startDate, endDate);
-      setGroupedItems(data || {});
+      const shoppingListData = await recipeManagementApiService.fetchShoppingList(startDate, endDate);
+      setGroupedItems(shoppingListData || {});
     } catch (error) {
       console.error('Error loading shopping list:', error);
       setErrorMessage('Unable to load your shopping list. Please check the backend connection and try again.');

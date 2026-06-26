@@ -49,19 +49,20 @@ public class DashboardStatsService {
     }
 
     /**
-     * Builds the dashboard statistics for the requested inclusive date range.
+     * Builds the dashboard statistics for a user over the requested inclusive date range.
      *
+     * @param userId the owning user's identifier
      * @param startDate inclusive start date of the week
      * @param endDate inclusive end date of the week
      * @return populated dashboard statistics
      */
     @Transactional(readOnly = true)
-    public DashboardStatsDto buildWeeklyStats(LocalDate startDate, LocalDate endDate) {
+    public DashboardStatsDto buildWeeklyStats(Long userId, LocalDate startDate, LocalDate endDate) {
         int totalRecipes = (int) recipeRepository.count();
         int favoriteRecipes = (int) recipeRepository.countByIsFavoritedTrue();
-        int plannedMeals = mealPlanRepository.findByPlannedDateBetween(startDate, endDate).size();
+        int plannedMeals = mealPlanRepository.findByUserIdAndPlannedDateBetween(userId, startDate, endDate).size();
 
-        Map<String, List<ShoppingListItem>> shoppingList = shoppingListService.getShoppingList(startDate, endDate);
+        Map<String, List<ShoppingListItem>> shoppingList = shoppingListService.getShoppingList(userId, startDate, endDate);
         int distinctShoppingItems = shoppingList.values().stream().mapToInt(List::size).sum();
 
         NutritionEstimateDto nutrition = NutritionEstimateDto.builder()

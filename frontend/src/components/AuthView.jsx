@@ -27,8 +27,8 @@ export const AuthView = ({ onAuthSuccess }) => {
   };
 
   // Client side validation rules
-  const isEmailValid = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-  const isPasswordValid = (val) => val.length >= 6;
+  const isEmailValid = (inputValue) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputValue);
+  const isPasswordValid = (inputValue) => inputValue.length >= 6;
   const isConfirmPasswordValid = () => password === confirmPassword;
 
   // Form submission handler

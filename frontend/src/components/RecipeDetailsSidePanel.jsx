@@ -192,7 +192,7 @@ export const RecipeDetailsSidePanel = ({ isOpen, onClose, recipe, onDeleteRecipe
         <div className="detail-panel-body" style={{ position: 'relative' }}>
           
           {/* Scheduling & Servings Controller Row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '1rem', position: 'relative' }}>
+          <div className="detail-panel-actions-row">
             <div style={{ position: 'relative' }}>
               <button 
                 type="button" 

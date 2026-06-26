@@ -17,17 +17,25 @@ class MeasurementConverterTest {
     private final MeasurementConverter converter = new MeasurementConverter();
 
     @Test
-    @DisplayName("cups convert to millilitres")
-    void cupsToMilliliters() {
-        ConvertedMeasurement result = converter.convert(1.0, "cup");
-        assertEquals("ml", result.convertedUnit());
-        assertEquals(237.0, result.convertedAmount(), DELTA);
+    @DisplayName("cups pass through unchanged (household scoop unit, not liquid)")
+    void cupsPassThrough() {
+        ConvertedMeasurement result = converter.convert(2.0, "cups");
+        assertEquals("cups", result.convertedUnit());
+        assertEquals(2.0, result.convertedAmount(), DELTA);
     }
 
     @Test
-    @DisplayName("multiple cups simplify to litres")
-    void cupsSimplifyToLitres() {
-        ConvertedMeasurement result = converter.convert(5.0, "cups");
+    @DisplayName("tablespoons pass through unchanged (household scoop unit)")
+    void tablespoonsPassThrough() {
+        ConvertedMeasurement result = converter.convert(3.0, "tbsp");
+        assertEquals("tbsp", result.convertedUnit());
+        assertEquals(3.0, result.convertedAmount(), DELTA);
+    }
+
+    @Test
+    @DisplayName("fluid ounces convert and simplify to litres")
+    void fluidOuncesSimplifyToLitres() {
+        ConvertedMeasurement result = converter.convert(40.0, "fl oz");
         assertEquals("l", result.convertedUnit());
         assertEquals(1.18, result.convertedAmount(), DELTA);
     }
@@ -57,11 +65,11 @@ class MeasurementConverterTest {
     }
 
     @Test
-    @DisplayName("teaspoon converts to millilitres")
-    void teaspoonToMilliliters() {
+    @DisplayName("teaspoon passes through unchanged (household scoop unit)")
+    void teaspoonPassThrough() {
         ConvertedMeasurement result = converter.convert(1.0, "teaspoon");
-        assertEquals("ml", result.convertedUnit());
-        assertEquals(5.0, result.convertedAmount(), DELTA);
+        assertEquals("teaspoon", result.convertedUnit());
+        assertEquals(1.0, result.convertedAmount(), DELTA);
     }
 
     @Test

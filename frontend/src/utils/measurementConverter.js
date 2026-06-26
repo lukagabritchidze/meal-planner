@@ -1,16 +1,18 @@
 /**
  * Measurement conversion utility (frontend mirror of the backend MeasurementConverter).
  *
- * Volume units are normalised to millilitres and simplified to litres at >= 1000 ml.
- * Mass units are normalised to grams and simplified to kilograms at >= 1000 g.
- * Already-metric units pass through, and unrecognised / count-based units are left unchanged.
+ * Unambiguous liquid-volume units (fl oz, pint, quart, gallon, ml, l) are normalised
+ * to millilitres and simplified to litres at >= 1000 ml. Mass units are normalised to
+ * grams and simplified to kilograms at >= 1000 g. Already-metric units pass through.
+ *
+ * Household "scoop" units (teaspoon, tablespoon, cup) are intentionally NOT converted:
+ * they are routinely used for non-liquid ingredients too (e.g. "2 cups spinach"), so
+ * turning them into millilitres is misleading. They are treated like count-based units
+ * and left unchanged, as are unrecognised units.
  */
 
 const VOLUME_TO_ML = {
-  tsp: 4.929, teaspoon: 4.929, teaspoons: 4.929,
-  tbsp: 14.787, tablespoon: 14.787, tablespoons: 14.787,
   'fl oz': 29.574, 'fluid ounce': 29.574, 'fluid ounces': 29.574,
-  cup: 236.588, cups: 236.588,
   pt: 473.176, pint: 473.176, pints: 473.176,
   qt: 946.353, quart: 946.353, quarts: 946.353,
   gal: 3785.41, gallon: 3785.41, gallons: 3785.41,

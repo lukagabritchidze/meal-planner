@@ -28,8 +28,8 @@ export const DashboardView = ({
     if (!weekStartDateString || !weekEndDateString) return;
     setIsLoadingStats(true);
     try {
-      const data = await recipeManagementApiService.fetchDashboardStats(weekStartDateString, weekEndDateString);
-      setStats(data);
+      const dashboardStatsData = await recipeManagementApiService.fetchDashboardStats(weekStartDateString, weekEndDateString);
+      setStats(dashboardStatsData);
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
       setStats(null);
@@ -46,7 +46,7 @@ export const DashboardView = ({
   // Fallbacks derived locally so cards still show meaningful values if the
   // stats request is in flight or fails.
   const totalRecipes = stats?.totalRecipes ?? recipeListPayload.length;
-  const favoriteRecipes = stats?.favoriteRecipes ?? recipeListPayload.filter((r) => r.isFavorited).length;
+  const favoriteRecipes = stats?.favoriteRecipes ?? recipeListPayload.filter((recipeItem) => recipeItem.isFavorited).length;
   const totalPlannedMeals = stats?.plannedMealsThisWeek ?? Object.values(plannedMeals).filter(Boolean).length;
   const totalItemsToBuy = stats?.distinctShoppingItems ?? 0;
 
@@ -56,7 +56,7 @@ export const DashboardView = ({
     { key: 'carbs', label: 'Carbs', grams: nutrition.carbsGrams, className: 'macro-carbs' },
     { key: 'fat', label: 'Fat', grams: nutrition.fatGrams, className: 'macro-fat' },
   ];
-  const maxMacro = Math.max(1, ...macros.map((m) => m.grams));
+  const maxMacro = Math.max(1, ...macros.map((macroItem) => macroItem.grams));
 
   const favoriteShortlist = stats?.favoriteRecipeShortlist ?? [];
 

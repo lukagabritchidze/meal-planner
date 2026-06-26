@@ -1,14 +1,20 @@
 import { convertToMetric } from './measurementConverter.js';
 
 describe('convertToMetric', () => {
-  test('cups convert to millilitres', () => {
-    const result = convertToMetric(1, 'cup');
-    expect(result.unit).toBe('ml');
-    expect(result.amount).toBeCloseTo(237, 3);
+  test('cups pass through unchanged (household scoop unit, not liquid)', () => {
+    const result = convertToMetric(2, 'cups');
+    expect(result.unit).toBe('cups');
+    expect(result.amount).toBe(2);
   });
 
-  test('multiple cups simplify to litres', () => {
-    const result = convertToMetric(5, 'cups');
+  test('tablespoons pass through unchanged (household scoop unit)', () => {
+    const result = convertToMetric(3, 'tbsp');
+    expect(result.unit).toBe('tbsp');
+    expect(result.amount).toBe(3);
+  });
+
+  test('fluid ounces convert and simplify to litres', () => {
+    const result = convertToMetric(40, 'fl oz');
     expect(result.unit).toBe('l');
     expect(result.amount).toBeCloseTo(1.18, 3);
   });
@@ -31,10 +37,10 @@ describe('convertToMetric', () => {
     expect(result.amount).toBeCloseTo(3.79, 3);
   });
 
-  test('teaspoon converts to millilitres', () => {
+  test('teaspoon passes through unchanged (household scoop unit)', () => {
     const result = convertToMetric(1, 'teaspoon');
-    expect(result.unit).toBe('ml');
-    expect(result.amount).toBeCloseTo(5, 3);
+    expect(result.unit).toBe('teaspoon');
+    expect(result.amount).toBe(1);
   });
 
   test('already-metric millilitres pass through', () => {

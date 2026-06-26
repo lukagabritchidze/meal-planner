@@ -47,16 +47,17 @@ public class ShoppingListService {
     }
 
     /**
-     * Aggregates recipe ingredients from meal plans in the requested date range.
+     * Aggregates a user's recipe ingredients from meal plans in the requested date range.
      *
+     * @param userId the owning user's identifier
      * @param startDate inclusive start date
      * @param endDate inclusive end date
      * @return department-grouped shopping list items
      */
     @Transactional(readOnly = true)
-    public Map<String, List<ShoppingListItem>> getShoppingList(LocalDate startDate, LocalDate endDate) {
-        List<MealPlan> mealPlans = mealPlanRepository.findByPlannedDateBetween(startDate, endDate);
-        Set<Long> checkedIngredientIds = checkedStateRepository.findByDateBetween(startDate, endDate)
+    public Map<String, List<ShoppingListItem>> getShoppingList(Long userId, LocalDate startDate, LocalDate endDate) {
+        List<MealPlan> mealPlans = mealPlanRepository.findByUserIdAndPlannedDateBetween(userId, startDate, endDate);
+        Set<Long> checkedIngredientIds = checkedStateRepository.findByUserIdAndDateBetween(userId, startDate, endDate)
                 .stream()
                 .filter(state -> Boolean.TRUE.equals(state.getChecked()))
                 .map(ShoppingListCheckedState::getIngredientId)
@@ -90,6 +91,8 @@ public class ShoppingListService {
                     ));
                 } else {
                     existing.amount += converted.convertedAmount() == null ? 0.0 : converted.convertedAmount();
+                    // Keep the smallest source id as this aggregated row's stable identity, so the
+                    // "checked" state persists consistently even as recipes are added or removed.
                     if (ingredient.getRecipeIngredientId() != null
                             && (existing.ingredientId == null || ingredient.getRecipeIngredientId() < existing.ingredientId)) {
                         existing.ingredientId = ingredient.getRecipeIngredientId();
@@ -125,15 +128,17 @@ public class ShoppingListService {
     }
 
     /**
-     * Toggles persisted checked state for one shopping list item.
+     * Toggles a user's persisted checked state for one shopping list item.
      *
+     * @param userId the owning user's identifier
      * @param ingredientId ingredient identifier
      * @param date selected week anchor date
      * @return the updated checked state
      */
-    public ShoppingListCheckedState toggleCheckedState(Long ingredientId, LocalDate date) {
-        ShoppingListCheckedState state = checkedStateRepository.findByIngredientIdAndDate(ingredientId, date)
+    public ShoppingListCheckedState toggleCheckedState(Long userId, Long ingredientId, LocalDate date) {
+        ShoppingListCheckedState state = checkedStateRepository.findByUserIdAndIngredientIdAndDate(userId, ingredientId, date)
                 .orElseGet(() -> ShoppingListCheckedState.builder()
+                        .userId(userId)
                         .ingredientId(ingredientId)
                         .date(date)
                         .checked(false)
@@ -143,13 +148,14 @@ public class ShoppingListService {
     }
 
     /**
-     * Clears checked states in the requested date range.
+     * Clears a user's checked states in the requested date range.
      *
+     * @param userId the owning user's identifier
      * @param startDate inclusive start date
      * @param endDate inclusive end date
      */
-    public void clearCheckedStates(LocalDate startDate, LocalDate endDate) {
-        checkedStateRepository.deleteByDateBetween(startDate, endDate);
+    public void clearCheckedStates(Long userId, LocalDate startDate, LocalDate endDate) {
+        checkedStateRepository.deleteByUserIdAndDateBetween(userId, startDate, endDate);
     }
 
     /**
@@ -204,10 +210,20 @@ public class ShoppingListService {
         return groupedItems;
     }
 
+    /**
+     * Builds the key used to merge duplicate ingredients. Two ingredients are combined only
+     * when both their name and unit match, so "200 g flour" and "1 cup flour" stay separate.
+     * Format is {@code "name|unit"}, both lower-cased and trimmed.
+     */
     private String createAggregationKey(String name, String unit) {
         return name.trim().toLowerCase(Locale.ROOT) + "|" + (unit == null ? "" : unit.trim().toLowerCase(Locale.ROOT));
     }
 
+    /**
+     * Resolves a supermarket department for an ingredient by matching configured keywords.
+     * Falls back to "Produce" (fresh fruit/veg) when no keyword matches, since unmatched
+     * whole-food ingredients are most often produce.
+     */
     private String resolveDepartment(String ingredientName) {
         String normalizedName = ingredientName.toLowerCase(Locale.ROOT);
         for (Map.Entry<String, List<String>> entry : departmentKeywords.entrySet()) {
@@ -220,6 +236,7 @@ public class ShoppingListService {
         return "Produce";
     }
 
+    /** Mutable accumulator used while merging duplicate ingredients into a single shopping row. */
     private static class AggregatedIngredient {
         private Long ingredientId;
         private final String name;

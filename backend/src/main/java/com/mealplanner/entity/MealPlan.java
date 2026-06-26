@@ -18,6 +18,13 @@ public class MealPlan {
     @Column(name = "meal_plan_id")
     private Long mealPlanId;
 
+    /**
+     * Identifier of the user who owns this planned meal. Every meal plan is private
+     * to a single user so that planners are never shared across accounts.
+     */
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
     @Column(name = "planned_date", nullable = false)
     private LocalDate plannedDate;
 

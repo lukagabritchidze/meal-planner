@@ -34,6 +34,13 @@ public class Holiday {
     @Column(name = "holiday_id")
     private Long holidayId;
 
+    /**
+     * Identifier of the user who owns this holiday. Holidays are private to a single
+     * user so that one account's celebrations are never visible to another.
+     */
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
     @Column(nullable = false)
     private String name;
 

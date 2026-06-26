@@ -21,7 +21,7 @@ import java.time.LocalDate;
 @Entity
 @Table(
         name = "shopping_list_checked_state",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"ingredient_id", "state_date"})
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "ingredient_id", "state_date"})
 )
 @Getter
 @Setter
@@ -34,6 +34,13 @@ public class ShoppingListCheckedState {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "shopping_list_checked_state_id")
     private Long shoppingListCheckedStateId;
+
+    /**
+     * Identifier of the user who owns this checked state, so one shopper's ticked-off
+     * items never appear on another user's list.
+     */
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Column(name = "ingredient_id", nullable = false)
     private Long ingredientId;

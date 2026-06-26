@@ -22,8 +22,8 @@ export const HolidayManager = ({
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const data = await recipeManagementApiService.fetchHolidays();
-      setHolidays(data || []);
+      const holidaysListResponse = await recipeManagementApiService.fetchHolidays();
+      setHolidays(holidaysListResponse || []);
       onHolidaysChanged?.();
     } catch (error) {
       console.error('Error loading holidays:', error);

@@ -10,11 +10,12 @@ import java.util.List;
 public interface MealPlanRepository extends JpaRepository<MealPlan, Long> {
     
     /**
-     * Retrieves all planned meals scheduled between start and end dates.
+     * Retrieves a user's planned meals scheduled between start and end dates.
      *
+     * @param userId the owning user's identifier
      * @param startDate the start date
      * @param endDate the end date
-     * @return list of matching meal plans
+     * @return list of the user's matching meal plans
      */
-    List<MealPlan> findByPlannedDateBetween(LocalDate startDate, LocalDate endDate);
+    List<MealPlan> findByUserIdAndPlannedDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
 }

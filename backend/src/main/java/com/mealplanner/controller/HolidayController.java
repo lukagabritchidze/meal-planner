@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,55 +51,64 @@ public class HolidayController {
     }
 
     /**
-     * Retrieves all holidays sorted by date ascending.
+     * Retrieves the authenticated user's holidays sorted by date ascending.
      *
-     * @return all holidays
+     * @param userId owning user's identifier (from the X-User-Id header)
+     * @return the user's holidays
      */
     @GetMapping
-    public ResponseEntity<List<Holiday>> getAllHolidays() {
-        return ResponseEntity.ok(holidayRepository.findAllByOrderByDateAsc());
+    public ResponseEntity<List<Holiday>> getAllHolidays(@RequestHeader("X-User-Id") Long userId) {
+        return ResponseEntity.ok(holidayRepository.findByUserIdOrderByDateAsc(userId));
     }
 
     /**
-     * Retrieves all holidays whose dates are inside a range.
+     * Retrieves the authenticated user's holidays whose dates are inside a range.
      *
+     * @param userId owning user's identifier (from the X-User-Id header)
      * @param startDate inclusive start date
      * @param endDate inclusive end date
      * @return matching holidays
      */
     @GetMapping("/range")
     public ResponseEntity<List<Holiday>> getHolidaysInRange(
+            @RequestHeader("X-User-Id") Long userId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(holidayRepository.findByDateBetweenOrderByDateAsc(startDate, endDate));
+        return ResponseEntity.ok(holidayRepository.findByUserIdAndDateBetweenOrderByDateAsc(userId, startDate, endDate));
     }
 
     /**
-     * Retrieves a single holiday with its planned meals.
+     * Retrieves a single holiday (owned by the user) with its planned meals.
      *
+     * @param userId owning user's identifier (from the X-User-Id header)
      * @param holidayId holiday identifier
-     * @return holiday if found, otherwise 404
+     * @return holiday if found and owned by the user, otherwise 404
      */
     @GetMapping("/{holidayId}")
-    public ResponseEntity<Holiday> getHolidayById(@PathVariable Long holidayId) {
+    public ResponseEntity<Holiday> getHolidayById(@RequestHeader("X-User-Id") Long userId,
+                                                  @PathVariable Long holidayId) {
         return holidayRepository.findById(holidayId)
+                .filter(holiday -> userId.equals(holiday.getUserId()))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     /**
-     * Creates a holiday.
+     * Creates a holiday owned by the authenticated user.
      *
+     * @param userId owning user's identifier (from the X-User-Id header)
      * @param request holiday request payload
      * @return created holiday
      */
     @PostMapping
-    public ResponseEntity<Holiday> createHoliday(@RequestBody HolidayRequest request) {
+    public ResponseEntity<Holiday> createHoliday(@RequestHeader("X-User-Id") Long userId,
+                                                 @RequestBody HolidayRequest request) {
         if (request.getName() == null || request.getName().trim().isEmpty() || request.getDate() == null) {
             return ResponseEntity.badRequest().build();
         }
 
         Holiday holiday = Holiday.builder()
+                .userId(userId)
                 .name(request.getName().trim())
                 .date(request.getDate())
                 .emoji(request.getEmoji())
@@ -109,15 +119,19 @@ public class HolidayController {
     }
 
     /**
-     * Updates an existing holiday.
+     * Updates an existing holiday owned by the authenticated user.
      *
+     * @param userId owning user's identifier (from the X-User-Id header)
      * @param holidayId holiday identifier
      * @param request holiday request payload
-     * @return updated holiday if found, otherwise 404
+     * @return updated holiday if found and owned by the user, otherwise 404
      */
     @PutMapping("/{holidayId}")
-    public ResponseEntity<Holiday> updateHoliday(@PathVariable Long holidayId, @RequestBody HolidayRequest request) {
+    public ResponseEntity<Holiday> updateHoliday(@RequestHeader("X-User-Id") Long userId,
+                                                 @PathVariable Long holidayId,
+                                                 @RequestBody HolidayRequest request) {
         return holidayRepository.findById(holidayId)
+                .filter(holiday -> userId.equals(holiday.getUserId()))
                 .map(holiday -> {
                     if (request.getName() != null && !request.getName().trim().isEmpty()) {
                         holiday.setName(request.getName().trim());
@@ -133,14 +147,19 @@ public class HolidayController {
     }
 
     /**
-     * Deletes a holiday and all holiday meal plans via cascade.
+     * Deletes a holiday (owned by the user) and all its holiday meal plans via cascade.
      *
+     * @param userId owning user's identifier (from the X-User-Id header)
      * @param holidayId holiday identifier
      * @return no-content response if deleted, otherwise 404
      */
     @DeleteMapping("/{holidayId}")
-    public ResponseEntity<Void> deleteHoliday(@PathVariable Long holidayId) {
-        if (!holidayRepository.existsById(holidayId)) {
+    public ResponseEntity<Void> deleteHoliday(@RequestHeader("X-User-Id") Long userId,
+                                              @PathVariable Long holidayId) {
+        boolean ownedByUser = holidayRepository.findById(holidayId)
+                .filter(holiday -> userId.equals(holiday.getUserId()))
+                .isPresent();
+        if (!ownedByUser) {
             return ResponseEntity.notFound().build();
         }
         holidayRepository.deleteById(holidayId);
@@ -148,20 +167,23 @@ public class HolidayController {
     }
 
     /**
-     * Assigns a recipe to a holiday meal slot.
+     * Assigns a recipe to a meal slot on a holiday owned by the authenticated user.
      *
+     * @param userId owning user's identifier (from the X-User-Id header)
      * @param holidayId holiday identifier
      * @param request meal assignment request
      * @return created holiday meal plan
      */
     @PostMapping("/{holidayId}/meals")
-    public ResponseEntity<HolidayMealPlan> addHolidayMeal(@PathVariable Long holidayId,
+    public ResponseEntity<HolidayMealPlan> addHolidayMeal(@RequestHeader("X-User-Id") Long userId,
+                                                          @PathVariable Long holidayId,
                                                           @RequestBody HolidayMealRequest request) {
         if (request.getRecipeId() == null || request.getSlot() == null || request.getSlot().trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
 
         return holidayRepository.findById(holidayId)
+                .filter(holiday -> userId.equals(holiday.getUserId()))
                 .flatMap(holiday -> recipeRepository.findById(request.getRecipeId())
                         .map(recipe -> {
                             holidayMealPlanRepository.deleteAll(
@@ -179,15 +201,21 @@ public class HolidayController {
     }
 
     /**
-     * Removes a single holiday meal plan.
+     * Removes a single meal plan from a holiday owned by the authenticated user.
      *
+     * @param userId owning user's identifier (from the X-User-Id header)
      * @param holidayId holiday identifier
      * @param mealId meal plan identifier
      * @return no-content response if deleted, otherwise 404
      */
     @DeleteMapping("/{holidayId}/meals/{mealId}")
-    public ResponseEntity<Void> deleteHolidayMeal(@PathVariable Long holidayId, @PathVariable Long mealId) {
-        if (!holidayMealPlanRepository.existsByHolidayMealPlanIdAndHolidayHolidayId(mealId, holidayId)) {
+    public ResponseEntity<Void> deleteHolidayMeal(@RequestHeader("X-User-Id") Long userId,
+                                                  @PathVariable Long holidayId,
+                                                  @PathVariable Long mealId) {
+        boolean ownsHoliday = holidayRepository.findById(holidayId)
+                .filter(holiday -> userId.equals(holiday.getUserId()))
+                .isPresent();
+        if (!ownsHoliday || !holidayMealPlanRepository.existsByHolidayMealPlanIdAndHolidayHolidayId(mealId, holidayId)) {
             return ResponseEntity.notFound().build();
         }
         holidayMealPlanRepository.deleteById(mealId);
@@ -195,14 +223,20 @@ public class HolidayController {
     }
 
     /**
-     * Generates a holiday-scoped metric shopping list.
+     * Generates a holiday-scoped metric shopping list for a holiday owned by the user.
      *
+     * @param userId owning user's identifier (from the X-User-Id header)
      * @param holidayId holiday identifier
      * @return department-grouped shopping list for the holiday's meals
      */
     @GetMapping("/{holidayId}/shopping-list")
-    public ResponseEntity<Map<String, List<ShoppingListItem>>> getHolidayShoppingList(@PathVariable Long holidayId) {
-        if (!holidayRepository.existsById(holidayId)) {
+    public ResponseEntity<Map<String, List<ShoppingListItem>>> getHolidayShoppingList(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long holidayId) {
+        boolean ownsHoliday = holidayRepository.findById(holidayId)
+                .filter(holiday -> userId.equals(holiday.getUserId()))
+                .isPresent();
+        if (!ownsHoliday) {
             return ResponseEntity.notFound().build();
         }
 

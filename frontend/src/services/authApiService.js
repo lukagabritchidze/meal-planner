@@ -21,11 +21,11 @@ export const authApiService = {
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
+    const authResponseData = await response.json();
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to register account.');
+      throw new Error(authResponseData.error || 'Failed to register account.');
     }
-    return data;
+    return authResponseData;
   },
 
   /**
@@ -44,10 +44,10 @@ export const authApiService = {
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
+    const authResponseData = await response.json();
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to authenticate.');
+      throw new Error(authResponseData.error || 'Failed to authenticate.');
     }
-    return data;
+    return authResponseData;
   }
 };

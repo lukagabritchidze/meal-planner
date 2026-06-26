@@ -4,6 +4,32 @@
 const API_ROOT = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 const API_BASE_URL = `${API_ROOT}/api/recipes`;
 
+/**
+ * Reads the currently authenticated user's id from localStorage.
+ * Returns null when no user is signed in.
+ */
+function getCurrentUserId() {
+  try {
+    const saved = localStorage.getItem('platewise_authenticated_user');
+    return saved ? JSON.parse(saved).id : null;
+  } catch (error) {
+    console.error('Unable to read authenticated user id from localStorage:', error);
+    return null;
+  }
+}
+
+/**
+ * Builds request headers including the X-User-Id header so the backend can scope
+ * user-specific data (meal plans, holidays, shopping lists) to the signed-in user.
+ *
+ * @param {Object} extraHeaders additional headers to merge in
+ * @returns {Object} headers including X-User-Id when a user is signed in
+ */
+function userScopedHeaders(extraHeaders = {}) {
+  const userId = getCurrentUserId();
+  return userId != null ? { ...extraHeaders, 'X-User-Id': String(userId) } : { ...extraHeaders };
+}
+
 export const recipeManagementApiService = {
   async fetchAllRecipes(categoryFilter = null) {
     let url = API_BASE_URL;
@@ -63,7 +89,7 @@ export const recipeManagementApiService = {
   },
 
   async searchRecipesByIngredients(ingredientsList) {
-    const ingredientsParam = ingredientsList.map(ing => ing.trim()).filter(Boolean).join(',');
+    const ingredientsParam = ingredientsList.map(ingredient => ingredient.trim()).filter(Boolean).join(',');
     const url = `${API_BASE_URL}/search/ingredients?ingredients=${encodeURIComponent(ingredientsParam)}`;
     const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
     if (!response.ok) throw new Error(`Failed to search by ingredients: ${response.status}`);
@@ -79,7 +105,7 @@ export const recipeManagementApiService = {
 
   async fetchMealPlans(startDate, endDate) {
     const url = `${API_ROOT}/api/meal-plans?startDate=${startDate}&endDate=${endDate}`;
-    const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+    const response = await fetch(url, { method: 'GET', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
     if (!response.ok) throw new Error(`Failed to fetch meal plans: ${response.status}`);
     return await response.json();
   },
@@ -88,7 +114,7 @@ export const recipeManagementApiService = {
     const url = `${API_ROOT}/api/meal-plans`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: userScopedHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' }),
       body: JSON.stringify(payload)
     });
     if (!response.ok) throw new Error(`Failed to schedule meal: ${response.status}`);
@@ -97,47 +123,47 @@ export const recipeManagementApiService = {
 
   async deleteMealPlan(mealPlanId) {
     const url = `${API_ROOT}/api/meal-plans/${mealPlanId}`;
-    const response = await fetch(url, { method: 'DELETE' });
+    const response = await fetch(url, { method: 'DELETE', headers: userScopedHeaders() });
     if (!response.ok) throw new Error(`Failed to delete meal plan: ${response.status}`);
     return true;
   },
 
   async fetchDashboardStats(startDate, endDate) {
     const url = `${API_ROOT}/api/dashboard/stats?startDate=${startDate}&endDate=${endDate}`;
-    const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+    const response = await fetch(url, { method: 'GET', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
     if (!response.ok) throw new Error(`Failed to fetch dashboard stats: ${response.status}`);
     return await response.json();
   },
 
   async fetchShoppingList(startDate, endDate) {
     const url = `${API_ROOT}/api/shopping-list?startDate=${startDate}&endDate=${endDate}`;
-    const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+    const response = await fetch(url, { method: 'GET', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
     if (!response.ok) throw new Error(`Failed to fetch shopping list: ${response.status}`);
     return await response.json();
   },
 
   async toggleShoppingListItem(ingredientId, date) {
     const url = `${API_ROOT}/api/shopping-list/item/${ingredientId}/toggle?date=${date}`;
-    const response = await fetch(url, { method: 'PUT', headers: { 'Accept': 'application/json' } });
+    const response = await fetch(url, { method: 'PUT', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
     if (!response.ok) throw new Error(`Failed to toggle shopping list item: ${response.status}`);
     return await response.json();
   },
 
   async clearCheckedShoppingListItems(startDate, endDate) {
     const url = `${API_ROOT}/api/shopping-list/checked?startDate=${startDate}&endDate=${endDate}`;
-    const response = await fetch(url, { method: 'DELETE' });
+    const response = await fetch(url, { method: 'DELETE', headers: userScopedHeaders() });
     if (!response.ok) throw new Error(`Failed to clear shopping list checks: ${response.status}`);
     return true;
   },
 
   async fetchHolidays() {
-    const response = await fetch(`${API_ROOT}/api/holidays`, { method: 'GET', headers: { 'Accept': 'application/json' } });
+    const response = await fetch(`${API_ROOT}/api/holidays`, { method: 'GET', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
     if (!response.ok) throw new Error(`Failed to fetch holidays: ${response.status}`);
     return await response.json();
   },
 
   async fetchHolidayById(holidayId) {
-    const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}`, { method: 'GET', headers: { 'Accept': 'application/json' } });
+    const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}`, { method: 'GET', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
     if (!response.ok) throw new Error(`Failed to fetch holiday: ${response.status}`);
     return await response.json();
   },
@@ -145,7 +171,7 @@ export const recipeManagementApiService = {
   async createHoliday(payload) {
     const response = await fetch(`${API_ROOT}/api/holidays`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: userScopedHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' }),
       body: JSON.stringify(payload)
     });
     if (!response.ok) throw new Error(`Failed to create holiday: ${response.status}`);
@@ -155,7 +181,7 @@ export const recipeManagementApiService = {
   async updateHoliday(holidayId, payload) {
     const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: userScopedHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' }),
       body: JSON.stringify(payload)
     });
     if (!response.ok) throw new Error(`Failed to update holiday: ${response.status}`);
@@ -163,7 +189,7 @@ export const recipeManagementApiService = {
   },
 
   async deleteHoliday(holidayId) {
-    const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}`, { method: 'DELETE' });
+    const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}`, { method: 'DELETE', headers: userScopedHeaders() });
     if (!response.ok) throw new Error(`Failed to delete holiday: ${response.status}`);
     return true;
   },
@@ -171,7 +197,7 @@ export const recipeManagementApiService = {
   async addHolidayMeal(holidayId, payload) {
     const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}/meals`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: userScopedHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' }),
       body: JSON.stringify(payload)
     });
     if (!response.ok) throw new Error(`Failed to add holiday meal: ${response.status}`);
@@ -179,7 +205,7 @@ export const recipeManagementApiService = {
   },
 
   async deleteHolidayMeal(holidayId, mealId) {
-    const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}/meals/${mealId}`, { method: 'DELETE' });
+    const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}/meals/${mealId}`, { method: 'DELETE', headers: userScopedHeaders() });
     if (!response.ok) throw new Error(`Failed to delete holiday meal: ${response.status}`);
     return true;
   },
@@ -187,7 +213,7 @@ export const recipeManagementApiService = {
   async fetchHolidaysInRange(startDate, endDate) {
     const response = await fetch(`${API_ROOT}/api/holidays/range?startDate=${startDate}&endDate=${endDate}`, {
       method: 'GET',
-      headers: { 'Accept': 'application/json' }
+      headers: userScopedHeaders({ 'Accept': 'application/json' })
     });
     if (!response.ok) throw new Error(`Failed to fetch holidays in range: ${response.status}`);
     return await response.json();
@@ -196,7 +222,7 @@ export const recipeManagementApiService = {
   async fetchHolidayShoppingList(holidayId) {
     const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}/shopping-list`, {
       method: 'GET',
-      headers: { 'Accept': 'application/json' }
+      headers: userScopedHeaders({ 'Accept': 'application/json' })
     });
     if (!response.ok) throw new Error(`Failed to fetch holiday shopping list: ${response.status}`);
     return await response.json();

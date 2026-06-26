@@ -11,18 +11,20 @@ import java.util.List;
 public interface HolidayRepository extends JpaRepository<Holiday, Long> {
 
     /**
-     * Retrieves all holidays sorted by date ascending.
+     * Retrieves a user's holidays sorted by date ascending.
      *
-     * @return sorted holidays
+     * @param userId the owning user's identifier
+     * @return the user's holidays, sorted
      */
-    List<Holiday> findAllByOrderByDateAsc();
+    List<Holiday> findByUserIdOrderByDateAsc(Long userId);
 
     /**
-     * Retrieves holidays whose date falls inside a range, sorted by date ascending.
+     * Retrieves a user's holidays whose date falls inside a range, sorted by date ascending.
      *
+     * @param userId the owning user's identifier
      * @param startDate inclusive start date
      * @param endDate inclusive end date
-     * @return sorted matching holidays
+     * @return the user's matching holidays, sorted
      */
-    List<Holiday> findByDateBetweenOrderByDateAsc(LocalDate startDate, LocalDate endDate);
+    List<Holiday> findByUserIdAndDateBetweenOrderByDateAsc(Long userId, LocalDate startDate, LocalDate endDate);
 }

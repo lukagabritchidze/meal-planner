@@ -54,8 +54,8 @@ function App() {
     setIsLoading(true);
     setApiError(null);
     try {
-      const data = await recipeManagementApiService.searchRecipes(query, category);
-      setRecipeListPayload(data);
+      const recipesResponse = await recipeManagementApiService.searchRecipes(query, category);
+      setRecipeListPayload(recipesResponse);
     } catch (error) {
       console.error("Error searching recipes:", error);
       setApiError("Failed to search recipes. Please check your backend.");
@@ -68,8 +68,8 @@ function App() {
     setIsLoading(true);
     setApiError(null);
     try {
-      const data = await recipeManagementApiService.searchRecipesByIngredients(ingredientsList);
-      setRecipeListPayload(data);
+      const recipesResponse = await recipeManagementApiService.searchRecipesByIngredients(ingredientsList);
+      setRecipeListPayload(recipesResponse);
     } catch (error) {
       console.error("Error searching recipes by ingredients:", error);
       setApiError("Failed to search recipes by ingredients.");
@@ -87,8 +87,8 @@ function App() {
     setIsLoading(true);
     setApiError(null);
     try {
-      const data = await recipeManagementApiService.searchRecipesByHoliday(holidayName);
-      setRecipeListPayload(data);
+      const recipesResponse = await recipeManagementApiService.searchRecipesByHoliday(holidayName);
+      setRecipeListPayload(recipesResponse);
     } catch (error) {
       console.error(`Error searching recipes by holiday ${holidayName}:`, error);
       setApiError(`Failed to fetch ${holidayName} recipes.`);
@@ -201,8 +201,8 @@ function App() {
     setIsLoading(true);
     setApiError(null);
     try {
-      const data = await recipeManagementApiService.fetchAllRecipes();
-      setRecipeListPayload(data);
+      const recipesResponse = await recipeManagementApiService.fetchAllRecipes();
+      setRecipeListPayload(recipesResponse);
     } catch (error) {
       console.error("Error loading recipes from REST API:", error);
       setApiError("Failed to communicate with PlateWise backend server. Please verify the Spring Boot service is active.");

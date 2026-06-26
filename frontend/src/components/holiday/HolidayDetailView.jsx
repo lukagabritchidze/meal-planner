@@ -29,8 +29,8 @@ export const HolidayDetailView = ({ holidayId, recipeListPayload, onBack }) => {
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const data = await recipeManagementApiService.fetchHolidayById(holidayId);
-      setHoliday(data);
+      const holidayData = await recipeManagementApiService.fetchHolidayById(holidayId);
+      setHoliday(holidayData);
     } catch (error) {
       console.error('Error loading holiday:', error);
       setErrorMessage('Unable to load this holiday plan right now.');
@@ -84,8 +84,8 @@ export const HolidayDetailView = ({ holidayId, recipeListPayload, onBack }) => {
   const handleGenerateShoppingList = async () => {
     setErrorMessage('');
     try {
-      const data = await recipeManagementApiService.fetchHolidayShoppingList(holidayId);
-      setShoppingGroups(data || {});
+      const shoppingGroupsData = await recipeManagementApiService.fetchHolidayShoppingList(holidayId);
+      setShoppingGroups(shoppingGroupsData || {});
     } catch (error) {
       console.error('Error generating holiday shopping list:', error);
       setErrorMessage('Unable to generate the holiday shopping list.');

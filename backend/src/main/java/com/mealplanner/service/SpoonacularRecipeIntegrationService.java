@@ -20,19 +20,34 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Integrates with the external Spoonacular recipe API.
+ *
+ * <p>Each search method queries Spoonacular, converts the returned JSON into local
+ * {@link Recipe} entities (persisting new ones so they can be planned and favourited),
+ * and merges in any matching user-created "manual" recipes. When the remote call fails,
+ * every method degrades gracefully to a local-database search so the app stays usable
+ * offline / without API quota.</p>
+ */
 @Service
 @Transactional
 public class SpoonacularRecipeIntegrationService {
 
     private static final Logger log = LoggerFactory.getLogger(SpoonacularRecipeIntegrationService.class);
-    
+
+    /** Maximum number of recipes to request from Spoonacular per search. */
+    private static final int MAX_SEARCH_RESULTS = 12;
+
+    /** Cooking duration (minutes) assumed when Spoonacular does not provide one. */
+    private static final int DEFAULT_COOKING_MINUTES = 30;
+
     private final RecipeRepository recipeRepository;
     private final RestTemplate restTemplate;
 
-    private final String apiKey = "9d3c01194f0749b2b7a0c4cc8ecbe76b";
+    // The API key is read from the SPOONACULAR_API_KEY environment variable so the secret
+    // is not hard-coded in the repository. The fallback only exists for local development.
+    private final String apiKey = System.getenv().getOrDefault("SPOONACULAR_API_KEY", "9d3c01194f0749b2b7a0c4cc8ecbe76b");
     private final String apiBaseUrl = "https://api.spoonacular.com";
-
-
 
     @Autowired
     public SpoonacularRecipeIntegrationService(RecipeRepository recipeRepository) {
@@ -48,7 +63,7 @@ public class SpoonacularRecipeIntegrationService {
         List<Recipe> results = new ArrayList<>();
         try {
             String url = apiBaseUrl + "/recipes/complexSearch?apiKey=" + apiKey 
-                       + "&addRecipeInformation=true&fillIngredients=true&number=12";
+                       + "&addRecipeInformation=true&fillIngredients=true&number=" + MAX_SEARCH_RESULTS;
             
             if (query != null && !query.trim().isEmpty()) {
                 url += "&query=" + URLEncoder.encode(query, StandardCharsets.UTF_8);
@@ -94,11 +109,11 @@ public class SpoonacularRecipeIntegrationService {
         List<Recipe> results = new ArrayList<>();
         try {
             String commaSeparated = ingredients.stream()
-                    .map(ing -> URLEncoder.encode(ing.trim(), StandardCharsets.UTF_8))
+                    .map(ingredientName -> URLEncoder.encode(ingredientName.trim(), StandardCharsets.UTF_8))
                     .collect(Collectors.joining(","));
             
             String url = apiBaseUrl + "/recipes/findByIngredients?apiKey=" + apiKey 
-                       + "&ingredients=" + commaSeparated + "&number=12";
+                       + "&ingredients=" + commaSeparated + "&number=" + MAX_SEARCH_RESULTS;
 
             ResponseEntity<JsonNode> response = restTemplate.getForEntity(url, JsonNode.class);
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody().isArray()) {
@@ -134,14 +149,17 @@ public class SpoonacularRecipeIntegrationService {
             return fetchRecipesByIngredientsLocal(ingredients);
         }
 
-        // Merge manual user recipes matching ingredients locally
+        // Merge in manually-created recipes that also match these ingredients, skipping
+        // any whose title already appears in the Spoonacular results (avoids duplicates).
         List<Recipe> manualMatches = fetchRecipesByIngredientsLocal(ingredients).stream()
-                .filter(r -> r.getSpoonacularId() == null)
+                .filter(recipe -> recipe.getSpoonacularId() == null)
                 .toList();
         
-        for (Recipe r : manualMatches) {
-            if (results.stream().noneMatch(x -> x.getRecipeTitle().equalsIgnoreCase(r.getRecipeTitle()))) {
-                results.add(r);
+        for (Recipe manualRecipe : manualMatches) {
+            boolean alreadyListed = results.stream()
+                    .anyMatch(existing -> existing.getRecipeTitle().equalsIgnoreCase(manualRecipe.getRecipeTitle()));
+            if (!alreadyListed) {
+                results.add(manualRecipe);
             }
         }
 
@@ -155,10 +173,9 @@ public class SpoonacularRecipeIntegrationService {
         List<Recipe> results = new ArrayList<>();
         try {
             String url = apiBaseUrl + "/recipes/complexSearch?apiKey=" + apiKey 
-                       + "&addRecipeInformation=true&fillIngredients=true&number=12";
+                       + "&addRecipeInformation=true&fillIngredients=true&number=" + MAX_SEARCH_RESULTS;
             
-            // Map common holiday names to query tags
-            String queryParam = holidayName;
+            // Map common holiday names to dedicated query/cuisine tags for better matches.
             if ("Christmas".equalsIgnoreCase(holidayName)) {
                 url += "&query=christmas&cuisine=european";
             } else if ("Easter".equalsIgnoreCase(holidayName)) {
@@ -181,20 +198,23 @@ public class SpoonacularRecipeIntegrationService {
             }
         } catch (Exception e) {
             log.error("Failed to query Spoonacular holiday search: {}", e.getMessage());
-            // Fail back to local holiday matching
+            // Fall back to local holiday matching
             return recipeRepository.findAll().stream()
-                    .filter(r -> holidayName.equalsIgnoreCase(r.getAssociatedHolidayTag()))
+                    .filter(recipe -> holidayName.equalsIgnoreCase(recipe.getAssociatedHolidayTag()))
                     .collect(Collectors.toList());
         }
 
-        // Merge manual recipes that might have been marked with this holiday
+        // Merge in manually-created recipes tagged with this holiday, skipping titles
+        // already present in the Spoonacular results.
         List<Recipe> manualMatches = recipeRepository.findAll().stream()
-                .filter(r -> r.getSpoonacularId() == null && holidayName.equalsIgnoreCase(r.getAssociatedHolidayTag()))
+                .filter(recipe -> recipe.getSpoonacularId() == null && holidayName.equalsIgnoreCase(recipe.getAssociatedHolidayTag()))
                 .toList();
 
-        for (Recipe r : manualMatches) {
-            if (results.stream().noneMatch(x -> x.getRecipeTitle().equalsIgnoreCase(r.getRecipeTitle()))) {
-                results.add(r);
+        for (Recipe manualRecipe : manualMatches) {
+            boolean alreadyListed = results.stream()
+                    .anyMatch(existing -> existing.getRecipeTitle().equalsIgnoreCase(manualRecipe.getRecipeTitle()));
+            if (!alreadyListed) {
+                results.add(manualRecipe);
             }
         }
 
@@ -224,9 +244,13 @@ public class SpoonacularRecipeIntegrationService {
         String imagePath = recipeNode.has("image") && !recipeNode.get("image").isNull() 
                 ? recipeNode.get("image").asText() 
                 : "";
-        int cookingDuration = recipeNode.has("readyInMinutes") ? recipeNode.get("readyInMinutes").asInt(30) : 30;
+        int cookingDuration = recipeNode.has("readyInMinutes")
+                ? recipeNode.get("readyInMinutes").asInt(DEFAULT_COOKING_MINUTES)
+                : DEFAULT_COOKING_MINUTES;
         
-        // Extract category from dishTypes
+        // Derive our single category from Spoonacular's list of dish types. We take the
+        // first dish type that maps to one of our categories (meal slots win over course
+        // types), then stop, so e.g. a "breakfast, main course" recipe is filed as Breakfast.
         String category = "Other";
         if (recipeNode.has("dishTypes") && recipeNode.get("dishTypes").isArray()) {
             for (JsonNode typeNode : recipeNode.get("dishTypes")) {
@@ -273,13 +297,13 @@ public class SpoonacularRecipeIntegrationService {
 
         // Map ingredients
         if (recipeNode.has("extendedIngredients") && recipeNode.get("extendedIngredients").isArray()) {
-            for (JsonNode ingNode : recipeNode.get("extendedIngredients")) {
-                String ingName = ingNode.get("name").asText();
-                double amount = ingNode.has("amount") ? ingNode.get("amount").asDouble() : 1.0;
-                String unit = ingNode.has("unit") ? ingNode.get("unit").asText("") : "";
+            for (JsonNode ingredientNode : recipeNode.get("extendedIngredients")) {
+                String ingredientName = ingredientNode.get("name").asText();
+                double amount = ingredientNode.has("amount") ? ingredientNode.get("amount").asDouble() : 1.0;
+                String unit = ingredientNode.has("unit") ? ingredientNode.get("unit").asText("") : "";
                 
                 RecipeIngredient ingredient = RecipeIngredient.builder()
-                        .ingredientName(ingName)
+                        .ingredientName(ingredientName)
                         .ingredientQuantityValue(amount)
                         .ingredientQuantityUnit(unit)
                         .build();
@@ -291,7 +315,8 @@ public class SpoonacularRecipeIntegrationService {
         boolean isNutFree = checkIsNutFree(recipe.getRecipeIngredients());
         recipe.setIsNutFree(isNutFree);
 
-        // Map instruction steps
+        // Map structured instruction steps. Spoonacular returns "analyzedInstructions" as a
+        // list of instruction groups; index 0 is the main set of steps for the recipe.
         if (recipeNode.has("analyzedInstructions") && recipeNode.get("analyzedInstructions").isArray() && recipeNode.get("analyzedInstructions").size() > 0) {
             JsonNode stepsNode = recipeNode.get("analyzedInstructions").get(0).get("steps");
             if (stepsNode != null && stepsNode.isArray()) {
@@ -305,7 +330,8 @@ public class SpoonacularRecipeIntegrationService {
             }
         }
 
-        // Fallback for plain text instructions splitting by sentence
+        // Fallback when there are no structured steps: take the free-text "instructions",
+        // strip any HTML tags, then split into one step per sentence (on ". ").
         if (recipe.getRecipeInstructionSteps().isEmpty() && recipeNode.has("instructions") && !recipeNode.get("instructions").isNull()) {
             String instructionsText = recipeNode.get("instructions").asText().replaceAll("<[^>]*>", "");
             String[] sentences = instructionsText.split("\\.\\s+");
@@ -332,10 +358,15 @@ public class SpoonacularRecipeIntegrationService {
         return recipeRepository.save(recipe);
     }
 
+    /**
+     * Heuristically determines whether a recipe is nut-free by scanning ingredient names.
+     * Returns false as soon as a tree-nut indicator is found.
+     */
     private boolean checkIsNutFree(List<RecipeIngredient> ingredients) {
         if (ingredients == null) return true;
-        for (RecipeIngredient ing : ingredients) {
-            String name = ing.getIngredientName().toLowerCase();
+        for (RecipeIngredient ingredient : ingredients) {
+            String name = ingredient.getIngredientName().toLowerCase();
+            // "coconut" contains "nut" but is not a tree nut, so it is explicitly excluded.
             if (name.contains("nut") && !name.contains("coconut")) {
                 return false;
             }
@@ -347,17 +378,17 @@ public class SpoonacularRecipeIntegrationService {
     }
 
     private List<Recipe> fetchRecipesFromLocalDatabase(String query, String category) {
-        List<Recipe> all = recipeRepository.findAll();
-        return all.stream()
-                .filter(r -> {
+        List<Recipe> allRecipes = recipeRepository.findAll();
+        return allRecipes.stream()
+                .filter(recipe -> {
                     boolean matchesQuery = true;
                     if (query != null && !query.trim().isEmpty()) {
-                        matchesQuery = r.getRecipeTitle().toLowerCase().contains(query.toLowerCase()) ||
-                                       (r.getRecipeCategory() != null && r.getRecipeCategory().toLowerCase().contains(query.toLowerCase()));
+                        matchesQuery = recipe.getRecipeTitle().toLowerCase().contains(query.toLowerCase()) ||
+                                       (recipe.getRecipeCategory() != null && recipe.getRecipeCategory().toLowerCase().contains(query.toLowerCase()));
                     }
                     boolean matchesCategory = true;
                     if (category != null && !category.trim().isEmpty() && !"All".equalsIgnoreCase(category)) {
-                        matchesCategory = category.equalsIgnoreCase(r.getRecipeCategory());
+                        matchesCategory = category.equalsIgnoreCase(recipe.getRecipeCategory());
                     }
                     return matchesQuery && matchesCategory;
                 })
@@ -379,25 +410,27 @@ public class SpoonacularRecipeIntegrationService {
 
     private List<Recipe> mergeWithLocalManualRecipes(List<Recipe> spoonRecipes, String query, String category) {
         List<Recipe> merged = new ArrayList<>(spoonRecipes);
-        List<Recipe> manual = recipeRepository.findAll().stream()
-                .filter(r -> r.getSpoonacularId() == null) // manual only
-                .filter(r -> {
+        List<Recipe> manualMatches = recipeRepository.findAll().stream()
+                .filter(recipe -> recipe.getSpoonacularId() == null) // manual recipes only
+                .filter(recipe -> {
                     boolean matchesQuery = true;
                     if (query != null && !query.trim().isEmpty()) {
-                        matchesQuery = r.getRecipeTitle().toLowerCase().contains(query.toLowerCase()) ||
-                                       (r.getRecipeCategory() != null && r.getRecipeCategory().toLowerCase().contains(query.toLowerCase()));
+                        matchesQuery = recipe.getRecipeTitle().toLowerCase().contains(query.toLowerCase()) ||
+                                       (recipe.getRecipeCategory() != null && recipe.getRecipeCategory().toLowerCase().contains(query.toLowerCase()));
                     }
                     boolean matchesCategory = true;
                     if (category != null && !category.trim().isEmpty() && !"All".equalsIgnoreCase(category)) {
-                        matchesCategory = category.equalsIgnoreCase(r.getRecipeCategory());
+                        matchesCategory = category.equalsIgnoreCase(recipe.getRecipeCategory());
                     }
                     return matchesQuery && matchesCategory;
                 })
                 .toList();
 
-        for (Recipe r : manual) {
-            if (merged.stream().noneMatch(m -> m.getRecipeTitle().equalsIgnoreCase(r.getRecipeTitle()))) {
-                merged.add(r);
+        for (Recipe manualRecipe : manualMatches) {
+            boolean alreadyListed = merged.stream()
+                    .anyMatch(existing -> existing.getRecipeTitle().equalsIgnoreCase(manualRecipe.getRecipeTitle()));
+            if (!alreadyListed) {
+                merged.add(manualRecipe);
             }
         }
         return merged;

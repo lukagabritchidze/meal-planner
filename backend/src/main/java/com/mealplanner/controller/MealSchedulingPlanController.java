@@ -30,22 +30,28 @@ public class MealSchedulingPlanController {
     }
 
     /**
-     * Retrieves planned meals scheduled within the specified start and end dates.
+     * Retrieves the authenticated user's planned meals scheduled within the date range.
+     *
+     * @param userId owning user's identifier (from the X-User-Id header)
      */
     @GetMapping
     public ResponseEntity<List<MealPlan>> fetchMealPlans(
+            @RequestHeader("X-User-Id") Long userId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<MealPlan> plans = mealPlanRepository.findByPlannedDateBetween(startDate, endDate);
+        List<MealPlan> plans = mealPlanRepository.findByUserIdAndPlannedDateBetween(userId, startDate, endDate);
         return ResponseEntity.ok(plans);
     }
 
     /**
-     * Assigns a recipe to a specific date and meal slot (Breakfast, Lunch, Dinner).
-     * Replaces any existing plan in that slot.
+     * Assigns a recipe to a specific date and meal slot (Breakfast, Lunch, Dinner)
+     * for the authenticated user. Replaces any existing plan that user has in that slot.
+     *
+     * @param userId owning user's identifier (from the X-User-Id header)
      */
     @PostMapping
-    public ResponseEntity<MealPlan> addMealPlan(@RequestBody MealPlanRequest request) {
+    public ResponseEntity<MealPlan> addMealPlan(@RequestHeader("X-User-Id") Long userId,
+                                                @RequestBody MealPlanRequest request) {
         if (request.getPlannedDate() == null || request.getMealSlotType() == null || request.getRecipeId() == null) {
             return ResponseEntity.badRequest().build();
         }
@@ -62,8 +68,9 @@ public class MealSchedulingPlanController {
             return ResponseEntity.badRequest().build();
         }
 
-        // Clean up any existing meal plan in the same slot on the same date to prevent duplicates
-        List<MealPlan> existingPlansOnDate = mealPlanRepository.findByPlannedDateBetween(request.getPlannedDate(), request.getPlannedDate());
+        // Clean up this user's existing meal plan in the same slot on the same date to prevent duplicates
+        List<MealPlan> existingPlansOnDate = mealPlanRepository.findByUserIdAndPlannedDateBetween(
+                userId, request.getPlannedDate(), request.getPlannedDate());
         for (MealPlan plan : existingPlansOnDate) {
             if (plan.getMealSlotType() == slotType) {
                 mealPlanRepository.delete(plan);
@@ -71,6 +78,7 @@ public class MealSchedulingPlanController {
         }
 
         MealPlan mealPlan = MealPlan.builder()
+                .userId(userId)
                 .plannedDate(request.getPlannedDate())
                 .mealSlotType(slotType)
                 .recipe(recipeOpt.get())
@@ -81,11 +89,16 @@ public class MealSchedulingPlanController {
     }
 
     /**
-     * Removes a scheduled meal slot.
+     * Removes one of the authenticated user's scheduled meal slots. A meal plan that
+     * does not belong to the requesting user cannot be deleted.
+     *
+     * @param userId owning user's identifier (from the X-User-Id header)
      */
     @DeleteMapping("/{mealPlanId}")
-    public ResponseEntity<Void> deleteMealPlan(@PathVariable Long mealPlanId) {
-        if (!mealPlanRepository.existsById(mealPlanId)) {
+    public ResponseEntity<Void> deleteMealPlan(@RequestHeader("X-User-Id") Long userId,
+                                               @PathVariable Long mealPlanId) {
+        Optional<MealPlan> mealPlan = mealPlanRepository.findById(mealPlanId);
+        if (mealPlan.isEmpty() || !userId.equals(mealPlan.get().getUserId())) {
             return ResponseEntity.notFound().build();
         }
         mealPlanRepository.deleteById(mealPlanId);
