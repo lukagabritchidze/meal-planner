@@ -102,6 +102,13 @@ export const recipeManagementApiService = {
     return true;
   },
 
+  async fetchDashboardStats(startDate, endDate) {
+    const url = `${API_ROOT}/api/dashboard/stats?startDate=${startDate}&endDate=${endDate}`;
+    const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+    if (!response.ok) throw new Error(`Failed to fetch dashboard stats: ${response.status}`);
+    return await response.json();
+  },
+
   async fetchShoppingList(startDate, endDate) {
     const url = `${API_ROOT}/api/shopping-list?startDate=${startDate}&endDate=${endDate}`;
     const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });

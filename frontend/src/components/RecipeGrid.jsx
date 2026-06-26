@@ -86,7 +86,7 @@ export const RecipeGrid = ({
   return (
     <section style={{ maxWidth: '950px', margin: '0 auto' }}>
       
-      {/* Page Header (Hearth Screenshot 2 Style) */}
+      {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '2.2rem', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.5px', marginBottom: '0.2rem' }}>Recipes</h1>

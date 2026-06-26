@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { recipeManagementApiService } from '../../services/recipeManagementApiService';
+import { formatMeasurement } from '../../utils/measurementConverter';
 import { ShoppingGroup } from './ShoppingGroup';
 
 const DEPARTMENT_ORDER = ['Produce', 'Dairy', 'Meat', 'Pantry', 'Other'];
@@ -16,6 +17,7 @@ export const ShoppingList = ({
   const [groupedItems, setGroupedItems] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [copyConfirmation, setCopyConfirmation] = useState('');
 
   const startDate = formatDateString(weekDates[0]);
   const endDate = formatDateString(weekDates[6]);
@@ -81,6 +83,35 @@ export const ShoppingList = ({
     }
   };
 
+  const buildPlainTextList = () => {
+    const lines = [`Shopping List — ${formatDateRange()}`, ''];
+    orderedGroups.forEach((group) => {
+      lines.push(`${group.department.toUpperCase()}`);
+      group.items.forEach((item) => {
+        const amount = formatMeasurement(item.amount, item.unit);
+        lines.push(`  [ ] ${item.name}${amount ? ` — ${amount}` : ''}`);
+      });
+      lines.push('');
+    });
+    return lines.join('\n').trim();
+  };
+
+  const handleCopyAsText = async () => {
+    const text = buildPlainTextList();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyConfirmation('Copied to clipboard');
+    } catch (error) {
+      console.error('Clipboard copy failed:', error);
+      setCopyConfirmation('Copy failed — select and copy manually');
+    }
+    setTimeout(() => setCopyConfirmation(''), 2500);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   const handleResetList = async () => {
     setErrorMessage('');
     try {
@@ -94,6 +125,11 @@ export const ShoppingList = ({
 
   return (
     <section className="shopping-list-page">
+      <div className="print-receipt-header">
+        <h1>Shopping List</h1>
+        <p>{formatDateRange()} · {itemCount} items</p>
+      </div>
+
       <div className="page-header shopping-list-header">
         <div className="header-title-block">
           <h1>Shopping List</h1>
@@ -103,6 +139,20 @@ export const ShoppingList = ({
           Reset List
         </button>
       </div>
+
+      {itemCount > 0 && (
+        <div className="shopping-export-bar">
+          <button type="button" className="export-btn" onClick={handleCopyAsText}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Copy as text
+          </button>
+          <button type="button" className="export-btn" onClick={handlePrint}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            Print
+          </button>
+          {copyConfirmation && <span className="shopping-copy-toast" role="status">{copyConfirmation}</span>}
+        </div>
+      )}
 
       <div className="planner-nav shopping-week-nav">
         <button className="planner-nav-btn" onClick={() => setCurrentWeekOffset((prev) => prev - 1)} aria-label="Previous week">

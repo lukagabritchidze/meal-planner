@@ -3,10 +3,14 @@ C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\config\I
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\config\PasswordHasher.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\config\ShoppingDepartmentConfiguration.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\controller\AuthRestController.java
+C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\controller\DashboardController.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\controller\HolidayController.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\controller\MealSchedulingPlanController.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\controller\RecipeRestController.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\controller\ShoppingListController.java
+C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\dto\DashboardStatsDto.java
+C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\dto\NutritionEstimateDto.java
+C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\dto\RecipeSummaryDto.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\dto\ShoppingListItem.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\entity\Holiday.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\entity\HolidayMealPlan.java
@@ -24,6 +28,7 @@ C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\reposito
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\repository\RecipeRepository.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\repository\ShoppingListCheckedStateRepository.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\repository\UserRepository.java
+C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\service\DashboardStatsService.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\service\MeasurementConverter.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\service\RecipeManagementService.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\service\ShoppingListService.java

@@ -25,4 +25,18 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
      * Finds distinct recipes whose ingredients contain the specified string.
      */
     List<Recipe> findDistinctByRecipeIngredientsIngredientNameContainingIgnoreCase(String ingredientName);
+
+    /**
+     * Counts recipes currently marked as favorited.
+     *
+     * @return number of favorited recipes
+     */
+    long countByIsFavoritedTrue();
+
+    /**
+     * Retrieves all recipes currently marked as favorited.
+     *
+     * @return list of favorited recipes
+     */
+    List<Recipe> findByIsFavoritedTrue();
 }

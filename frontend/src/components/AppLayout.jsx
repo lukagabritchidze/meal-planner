@@ -23,7 +23,7 @@ export const AppLayout = ({ activeNavigationTab, setActiveNavigationTab, current
               <path d="M3 18h18a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1z" />
             </svg>
           </div>
-          <span className="mobile-brand-title" style={{ fontWeight: '800' }}>Hearth</span>
+          <span className="mobile-brand-title" style={{ fontWeight: '800' }}>PlateWise</span>
         </div>
         
         <div className="mobile-user-actions">
@@ -55,7 +55,7 @@ export const AppLayout = ({ activeNavigationTab, setActiveNavigationTab, current
             </svg>
           </div>
           <div className="brand-text-wrapper" style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="brand-title" style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--text-primary)', lineHeight: 1.1 }}>Hearth</span>
+            <span className="brand-title" style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--text-primary)', lineHeight: 1.1 }}>PlateWise</span>
             <span className="brand-subtitle" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '600' }}>Recipes & meals</span>
           </div>
         </div>

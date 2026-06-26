@@ -373,6 +373,9 @@ function App() {
             recipeListPayload={recipeListPayload}
             plannedMeals={plannedMeals}
             setActiveNavigationTab={setActiveNavigationTab}
+            weekStartDateString={weekStartDateString}
+            weekEndDateString={weekEndDateString}
+            onOpenRecipeDetails={handleOpenRecipeDetails}
           />
         );
 
@@ -476,7 +479,9 @@ function App() {
       )}
 
       {/* Main content page rendering */}
-      {renderActiveView()}
+      <div className="page-transition" key={activeNavigationTab}>
+        {renderActiveView()}
+      </div>
 
       {/* Modal: Manual Recipe Creation Form */}
       <RecipeManualInputFormModal
