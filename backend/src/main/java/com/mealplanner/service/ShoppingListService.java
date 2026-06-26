@@ -1,0 +1,236 @@
+package com.mealplanner.service;
+
+import com.mealplanner.dto.ShoppingListItem;
+import com.mealplanner.entity.MealPlan;
+import com.mealplanner.entity.RecipeIngredient;
+import com.mealplanner.entity.ShoppingListCheckedState;
+import com.mealplanner.repository.MealPlanRepository;
+import com.mealplanner.repository.ShoppingListCheckedStateRepository;
+import com.mealplanner.util.ConvertedMeasurement;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Builds aggregated, department-grouped shopping lists from scheduled meal plans.
+ */
+@Service
+@Transactional
+public class ShoppingListService {
+
+    private static final List<String> DEPARTMENT_ORDER = List.of("Produce", "Dairy", "Meat", "Pantry", "Other");
+
+    private final MealPlanRepository mealPlanRepository;
+    private final ShoppingListCheckedStateRepository checkedStateRepository;
+    private final MeasurementConverter measurementConverter;
+    private final Map<String, List<String>> departmentKeywords;
+
+    @Autowired
+    public ShoppingListService(MealPlanRepository mealPlanRepository,
+                               ShoppingListCheckedStateRepository checkedStateRepository,
+                               MeasurementConverter measurementConverter,
+                               Map<String, List<String>> shoppingDepartmentKeywords) {
+        this.mealPlanRepository = mealPlanRepository;
+        this.checkedStateRepository = checkedStateRepository;
+        this.measurementConverter = measurementConverter;
+        this.departmentKeywords = shoppingDepartmentKeywords;
+    }
+
+    /**
+     * Aggregates recipe ingredients from meal plans in the requested date range.
+     *
+     * @param startDate inclusive start date
+     * @param endDate inclusive end date
+     * @return department-grouped shopping list items
+     */
+    @Transactional(readOnly = true)
+    public Map<String, List<ShoppingListItem>> getShoppingList(LocalDate startDate, LocalDate endDate) {
+        List<MealPlan> mealPlans = mealPlanRepository.findByPlannedDateBetween(startDate, endDate);
+        Set<Long> checkedIngredientIds = checkedStateRepository.findByDateBetween(startDate, endDate)
+                .stream()
+                .filter(state -> Boolean.TRUE.equals(state.getChecked()))
+                .map(ShoppingListCheckedState::getIngredientId)
+                .collect(Collectors.toSet());
+
+        Map<String, AggregatedIngredient> aggregation = new LinkedHashMap<>();
+
+        for (MealPlan mealPlan : mealPlans) {
+            if (mealPlan.getRecipe() == null || mealPlan.getRecipe().getRecipeIngredients() == null) {
+                continue;
+            }
+
+            for (RecipeIngredient ingredient : mealPlan.getRecipe().getRecipeIngredients()) {
+                if (ingredient.getIngredientName() == null) {
+                    continue;
+                }
+
+                ConvertedMeasurement converted = measurementConverter.convert(
+                        ingredient.getIngredientQuantityValue(),
+                        ingredient.getIngredientQuantityUnit()
+                );
+
+                String key = createAggregationKey(ingredient.getIngredientName(), converted.convertedUnit());
+                AggregatedIngredient existing = aggregation.get(key);
+                if (existing == null) {
+                    aggregation.put(key, new AggregatedIngredient(
+                            ingredient.getRecipeIngredientId(),
+                            ingredient.getIngredientName().trim(),
+                            converted.convertedAmount() == null ? 0.0 : converted.convertedAmount(),
+                            converted.convertedUnit()
+                    ));
+                } else {
+                    existing.amount += converted.convertedAmount() == null ? 0.0 : converted.convertedAmount();
+                    if (ingredient.getRecipeIngredientId() != null
+                            && (existing.ingredientId == null || ingredient.getRecipeIngredientId() < existing.ingredientId)) {
+                        existing.ingredientId = ingredient.getRecipeIngredientId();
+                    }
+                }
+            }
+        }
+
+        Map<String, List<ShoppingListItem>> groupedItems = new LinkedHashMap<>();
+        DEPARTMENT_ORDER.forEach(department -> groupedItems.put(department, new ArrayList<>()));
+
+        for (AggregatedIngredient ingredient : aggregation.values()) {
+            ConvertedMeasurement simplified = measurementConverter.convert(ingredient.amount, ingredient.unit);
+            String department = resolveDepartment(ingredient.name);
+            ShoppingListItem item = ShoppingListItem.builder()
+                    .ingredientId(ingredient.ingredientId)
+                    .name(ingredient.name)
+                    .amount(simplified.convertedAmount())
+                    .unit(simplified.convertedUnit())
+                    .department(department)
+                    .checked(ingredient.ingredientId != null && checkedIngredientIds.contains(ingredient.ingredientId))
+                    .build();
+            groupedItems.computeIfAbsent(department, key -> new ArrayList<>()).add(item);
+        }
+
+        groupedItems.values().forEach(items -> items.sort(
+                Comparator.comparing(ShoppingListItem::isChecked)
+                        .thenComparing(ShoppingListItem::getName, String.CASE_INSENSITIVE_ORDER)
+        ));
+
+        groupedItems.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+        return groupedItems;
+    }
+
+    /**
+     * Toggles persisted checked state for one shopping list item.
+     *
+     * @param ingredientId ingredient identifier
+     * @param date selected week anchor date
+     * @return the updated checked state
+     */
+    public ShoppingListCheckedState toggleCheckedState(Long ingredientId, LocalDate date) {
+        ShoppingListCheckedState state = checkedStateRepository.findByIngredientIdAndDate(ingredientId, date)
+                .orElseGet(() -> ShoppingListCheckedState.builder()
+                        .ingredientId(ingredientId)
+                        .date(date)
+                        .checked(false)
+                        .build());
+        state.setChecked(!Boolean.TRUE.equals(state.getChecked()));
+        return checkedStateRepository.save(state);
+    }
+
+    /**
+     * Clears checked states in the requested date range.
+     *
+     * @param startDate inclusive start date
+     * @param endDate inclusive end date
+     */
+    public void clearCheckedStates(LocalDate startDate, LocalDate endDate) {
+        checkedStateRepository.deleteByDateBetween(startDate, endDate);
+    }
+
+    /**
+     * Converts a flat list of recipe ingredients into an aggregated department map.
+     * Used by holiday-scoped shopping list generation where there is no date range.
+     *
+     * @param ingredients ingredients to aggregate
+     * @return department-grouped shopping list items
+     */
+    @Transactional(readOnly = true)
+    public Map<String, List<ShoppingListItem>> aggregateIngredients(List<RecipeIngredient> ingredients) {
+        Map<String, AggregatedIngredient> aggregation = new LinkedHashMap<>();
+
+        for (RecipeIngredient ingredient : ingredients) {
+            ConvertedMeasurement converted = measurementConverter.convert(
+                    ingredient.getIngredientQuantityValue(),
+                    ingredient.getIngredientQuantityUnit()
+            );
+            String key = createAggregationKey(ingredient.getIngredientName(), converted.convertedUnit());
+            aggregation.compute(key, (ignored, existing) -> {
+                if (existing == null) {
+                    return new AggregatedIngredient(
+                            ingredient.getRecipeIngredientId(),
+                            ingredient.getIngredientName().trim(),
+                            converted.convertedAmount() == null ? 0.0 : converted.convertedAmount(),
+                            converted.convertedUnit()
+                    );
+                }
+                existing.amount += converted.convertedAmount() == null ? 0.0 : converted.convertedAmount();
+                return existing;
+            });
+        }
+
+        Map<String, List<ShoppingListItem>> groupedItems = new LinkedHashMap<>();
+        DEPARTMENT_ORDER.forEach(department -> groupedItems.put(department, new ArrayList<>()));
+        for (AggregatedIngredient ingredient : aggregation.values()) {
+            ConvertedMeasurement simplified = measurementConverter.convert(ingredient.amount, ingredient.unit);
+            String department = resolveDepartment(ingredient.name);
+            groupedItems.computeIfAbsent(department, key -> new ArrayList<>()).add(ShoppingListItem.builder()
+                    .ingredientId(ingredient.ingredientId)
+                    .name(ingredient.name)
+                    .amount(simplified.convertedAmount())
+                    .unit(simplified.convertedUnit())
+                    .department(department)
+                    .checked(false)
+                    .build());
+        }
+        groupedItems.values().forEach(items -> items.sort(
+                Comparator.comparing(ShoppingListItem::getName, String.CASE_INSENSITIVE_ORDER)
+        ));
+        groupedItems.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+        return groupedItems;
+    }
+
+    private String createAggregationKey(String name, String unit) {
+        return name.trim().toLowerCase(Locale.ROOT) + "|" + (unit == null ? "" : unit.trim().toLowerCase(Locale.ROOT));
+    }
+
+    private String resolveDepartment(String ingredientName) {
+        String normalizedName = ingredientName.toLowerCase(Locale.ROOT);
+        for (Map.Entry<String, List<String>> entry : departmentKeywords.entrySet()) {
+            boolean matches = entry.getValue().stream()
+                    .anyMatch(keyword -> normalizedName.contains(keyword.toLowerCase(Locale.ROOT)));
+            if (matches) {
+                return entry.getKey();
+            }
+        }
+        return "Produce";
+    }
+
+    private static class AggregatedIngredient {
+        private Long ingredientId;
+        private final String name;
+        private double amount;
+        private final String unit;
+
+        private AggregatedIngredient(Long ingredientId, String name, double amount, String unit) {
+            this.ingredientId = ingredientId;
+            this.name = name;
+            this.amount = amount;
+            this.unit = unit;
+        }
+    }
+}

@@ -1,0 +1,60 @@
+.modalContent {
+  max-width: 650px;
+}
+
+.subtitle {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: normal;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.searchWrap {
+  padding: 1rem 1.75rem 0;
+}
+
+.searchInput {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.servingsWrap {
+  padding: 0.75rem 1.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.servingsWrap label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.servingsInput {
+  width: 90px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.emptyMessage {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary);
+}
+
+.thumbFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--primary);
+  background-color: var(--primary-light);
+}

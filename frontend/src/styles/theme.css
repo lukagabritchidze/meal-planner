@@ -1,0 +1,124 @@
+/* ===================================================================
+   THEME TOKENS — Warm light + readable warm dark
+   Light palette inspired by the "off-white / sage / clay" Lovable export.
+   =================================================================== */
+
+:root,
+[data-theme="light"] {
+  /* Surfaces */
+  --color-bg-primary: oklch(1 0 0);
+  --color-bg-secondary: oklch(0.985 0.012 85);   /* app background — warm cream */
+  --color-bg-card: oklch(1 0 0);
+  --color-bg-sidebar: oklch(0.992 0.009 85);
+  --color-bg-modal: oklch(1 0 0);
+  --color-bg-input: oklch(1 0 0);
+  --color-bg-hover: oklch(0.955 0.015 85);
+  --color-backdrop: oklch(0.28 0.02 60 / 0.45);
+
+  /* Text */
+  --color-text-primary: oklch(0.27 0.025 55);
+  --color-text-secondary: oklch(0.5 0.02 60);
+  --color-text-muted: oklch(0.62 0.018 65);
+  --color-text-inverse: oklch(0.99 0.005 150);
+
+  /* Lines */
+  --color-border: oklch(0.91 0.015 80);
+  --color-border-focus: oklch(0.64 0.11 150);
+
+  /* Sage green primary */
+  --color-accent-primary: oklch(0.62 0.1 150);
+  --color-accent-hover: oklch(0.54 0.1 150);
+  --color-accent-light: oklch(0.94 0.04 150);
+
+  /* Terracotta clay (used for danger / accent) */
+  --color-danger: oklch(0.6 0.18 32);
+  --color-danger-light: oklch(0.95 0.035 45);
+  --color-warning: oklch(0.72 0.14 65);
+  --color-success: oklch(0.62 0.1 150);
+
+  --color-skeleton-base: oklch(0.93 0.012 85);
+  --color-skeleton-shimmer: oklch(0.97 0.01 85);
+
+  --color-checked-text: oklch(0.27 0.025 55 / 0.42);
+
+  --shadow-card: 0 1px 3px oklch(0.5 0.05 60 / 0.1), 0 1px 2px oklch(0.5 0.05 60 / 0.07);
+  --shadow-modal: 0 24px 60px oklch(0.4 0.05 60 / 0.22);
+  --shadow-sidebar: 2px 0 12px oklch(0.5 0.05 60 / 0.05);
+}
+
+[data-theme="dark"] {
+  /* Surfaces — warm charcoal, not pure gray */
+  --color-bg-primary: oklch(0.215 0.008 65);
+  --color-bg-secondary: oklch(0.185 0.008 65);   /* app background */
+  --color-bg-card: oklch(0.24 0.009 65);
+  --color-bg-sidebar: oklch(0.17 0.008 65);
+  --color-bg-modal: oklch(0.245 0.009 65);
+  --color-bg-input: oklch(0.275 0.01 65);
+  --color-bg-hover: oklch(0.31 0.012 65);
+  --color-backdrop: oklch(0.12 0.01 65 / 0.72);
+
+  /* Text — warm off-white, high contrast */
+  --color-text-primary: oklch(0.95 0.008 85);
+  --color-text-secondary: oklch(0.77 0.012 80);
+  --color-text-muted: oklch(0.63 0.012 75);
+  --color-text-inverse: oklch(0.2 0.01 65);
+
+  --color-border: oklch(0.34 0.01 65);
+  --color-border-focus: oklch(0.74 0.12 150);
+
+  /* Brighter sage so it reads on dark surfaces */
+  --color-accent-primary: oklch(0.66 0.12 150);
+  --color-accent-hover: oklch(0.74 0.12 150);
+  --color-accent-light: oklch(0.32 0.05 150);
+
+  --color-danger: oklch(0.68 0.16 35);
+  --color-danger-light: oklch(0.33 0.07 35);
+  --color-warning: oklch(0.78 0.13 70);
+  --color-success: oklch(0.74 0.12 150);
+
+  --color-skeleton-base: oklch(0.27 0.01 65);
+  --color-skeleton-shimmer: oklch(0.33 0.011 65);
+
+  --color-checked-text: oklch(0.95 0.008 85 / 0.4);
+
+  --shadow-card: 0 1px 3px oklch(0 0 0 / 0.4), 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-modal: 0 24px 60px oklch(0 0 0 / 0.55);
+  --shadow-sidebar: 2px 0 12px oklch(0 0 0 / 0.35);
+}
+
+/* -------------------------------------------------------------------
+   Legacy aliases — map the design-system tokens onto the palette above
+   so existing component styles keep working across both themes.
+   ------------------------------------------------------------------- */
+:root,
+[data-theme="light"],
+[data-theme="dark"] {
+  --bg-app: var(--color-bg-secondary);
+  --bg-card: var(--color-bg-card);
+  --bg-card-hover: var(--color-bg-hover);
+  --bg-sidebar: var(--color-bg-sidebar);
+  --bg-sidebar-hover: var(--color-bg-hover);
+
+  --primary: var(--color-accent-primary);
+  --primary-hover: var(--color-accent-hover);
+  --primary-light: var(--color-accent-light);
+  --primary-glow: color-mix(in srgb, var(--color-accent-primary) 18%, transparent);
+
+  --accent: var(--color-danger);
+  --accent-hover: var(--color-accent-hover);
+  --accent-light: var(--color-danger-light);
+  --accent-glow: color-mix(in srgb, var(--color-danger) 18%, transparent);
+
+  --border-color: var(--color-border);
+  --border-focus: var(--color-border-focus);
+
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+
+  --nav-active-text: color-mix(in srgb, var(--color-accent-primary) 70%, var(--color-text-primary));
+
+  --shadow-sm: var(--shadow-card);
+  --shadow-md: var(--shadow-modal);
+  --shadow-lg: var(--shadow-modal);
+}

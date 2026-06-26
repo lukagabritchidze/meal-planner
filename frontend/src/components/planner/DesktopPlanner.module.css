@@ -1,0 +1,58 @@
+.dayHeader {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  font-weight: bold;
+  color: var(--text-secondary);
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+  /* Reserve room for the holiday chip so every column's meal slots align. */
+  min-height: 86px;
+}
+
+.dayHeaderToday {
+  background-color: var(--primary-light);
+  color: var(--nav-active-text);
+  border-radius: var(--radius-md);
+}
+
+.dayHeaderHoliday {
+  border-radius: var(--radius-md);
+}
+
+.dayAbbr {
+  font-size: 0.72rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.dayNum {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-top: 2px;
+  color: var(--text-primary);
+}
+
+.holidayChip {
+  margin-top: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.holidayChip span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
