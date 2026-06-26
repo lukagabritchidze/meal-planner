@@ -7,6 +7,8 @@ import com.mealplanner.entity.ShoppingListCheckedState;
 import com.mealplanner.repository.MealPlanRepository;
 import com.mealplanner.repository.ShoppingListCheckedStateRepository;
 import com.mealplanner.util.ConvertedMeasurement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -27,6 +30,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class ShoppingListService {
+
+    private static final Logger log = LoggerFactory.getLogger(ShoppingListService.class);
 
     private static final List<String> DEPARTMENT_ORDER = List.of("Produce", "Dairy", "Meat", "Pantry", "Other");
 
@@ -56,12 +61,9 @@ public class ShoppingListService {
      */
     @Transactional(readOnly = true)
     public Map<String, List<ShoppingListItem>> getShoppingList(Long userId, LocalDate startDate, LocalDate endDate) {
-        List<MealPlan> mealPlans = mealPlanRepository.findByUserIdAndPlannedDateBetween(userId, startDate, endDate);
-        Set<Long> checkedIngredientIds = checkedStateRepository.findByUserIdAndDateBetween(userId, startDate, endDate)
-                .stream()
-                .filter(state -> Boolean.TRUE.equals(state.getChecked()))
-                .map(ShoppingListCheckedState::getIngredientId)
-                .collect(Collectors.toSet());
+        List<MealPlan> mealPlans = mealPlanRepository.findByUserIdAndPlannedDateBetweenWithIngredients(
+                userId, startDate, endDate);
+        Set<Long> checkedIngredientIds = loadCheckedIngredientIds(userId, startDate, endDate);
 
         Map<String, AggregatedIngredient> aggregation = new LinkedHashMap<>();
 
@@ -125,6 +127,25 @@ public class ShoppingListService {
 
         groupedItems.entrySet().removeIf(entry -> entry.getValue().isEmpty());
         return groupedItems;
+    }
+
+    private Set<Long> loadCheckedIngredientIds(Long userId, LocalDate startDate, LocalDate endDate) {
+        try {
+            return checkedStateRepository.findByUserIdAndDateBetween(userId, startDate, endDate)
+                    .stream()
+                    .filter(state -> Boolean.TRUE.equals(state.getChecked()))
+                    .map(ShoppingListCheckedState::getIngredientId)
+                    .collect(Collectors.toSet());
+        } catch (Exception exception) {
+            log.warn(
+                    "Could not load shopping-list checked states for user {} ({} to {}); continuing without them",
+                    userId,
+                    startDate,
+                    endDate,
+                    exception
+            );
+            return Collections.emptySet();
+        }
     }
 
     /**

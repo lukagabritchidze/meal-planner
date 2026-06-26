@@ -51,6 +51,7 @@ com\mealplanner\dto\ShoppingListItem$ShoppingListItemBuilder.class
 com\mealplanner\controller\HolidayController.class
 com\mealplanner\dto\ShoppingListItem.class
 com\mealplanner\repository\UserRepository.class
+com\mealplanner\config\DatabaseSchemaMigrationRunner.class
 com\mealplanner\dto\NutritionEstimateDto$NutritionEstimateDtoBuilder.class
 com\mealplanner\repository\MealPlanRepository.class
 com\mealplanner\config\PasswordHasher.class
