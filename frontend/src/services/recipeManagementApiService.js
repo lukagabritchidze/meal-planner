@@ -52,6 +52,19 @@ function userScopedHeaders(extraHeaders = {}) {
   return userId != null ? { ...headers, 'X-User-Id': String(userId) } : headers;
 }
 
+/**
+ * Fetch wrapper for user-scoped GET requests. Uses cache: 'no-store' so the browser
+ * never returns a stale shopping list or dashboard stats response for the same week URL.
+ */
+async function userScopedFetch(url, options = {}) {
+  const { headers: extraHeaders, ...rest } = options;
+  return fetch(url, {
+    cache: 'no-store',
+    ...rest,
+    headers: userScopedHeaders(extraHeaders ?? {}),
+  });
+}
+
 export const recipeManagementApiService = {
   setAuthenticatedUser,
 
@@ -129,7 +142,7 @@ export const recipeManagementApiService = {
 
   async fetchMealPlans(startDate, endDate) {
     const url = `${API_ROOT}/api/meal-plans?startDate=${startDate}&endDate=${endDate}`;
-    const response = await fetch(url, { method: 'GET', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
+    const response = await userScopedFetch(url, { method: 'GET', headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`Failed to fetch meal plans: ${response.status}`);
     return await response.json();
   },
@@ -154,14 +167,14 @@ export const recipeManagementApiService = {
 
   async fetchDashboardStats(startDate, endDate) {
     const url = `${API_ROOT}/api/dashboard/stats?startDate=${startDate}&endDate=${endDate}`;
-    const response = await fetch(url, { method: 'GET', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
+    const response = await userScopedFetch(url, { method: 'GET', headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`Failed to fetch dashboard stats: ${response.status}`);
     return await response.json();
   },
 
   async fetchShoppingList(startDate, endDate) {
     const url = `${API_ROOT}/api/shopping-list?startDate=${startDate}&endDate=${endDate}`;
-    const response = await fetch(url, { method: 'GET', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
+    const response = await userScopedFetch(url, { method: 'GET', headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`Failed to fetch shopping list: ${response.status}`);
     return await response.json();
   },
@@ -181,13 +194,13 @@ export const recipeManagementApiService = {
   },
 
   async fetchHolidays() {
-    const response = await fetch(`${API_ROOT}/api/holidays`, { method: 'GET', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
+    const response = await userScopedFetch(`${API_ROOT}/api/holidays`, { method: 'GET', headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`Failed to fetch holidays: ${response.status}`);
     return await response.json();
   },
 
   async fetchHolidayById(holidayId) {
-    const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}`, { method: 'GET', headers: userScopedHeaders({ 'Accept': 'application/json' }) });
+    const response = await userScopedFetch(`${API_ROOT}/api/holidays/${holidayId}`, { method: 'GET', headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`Failed to fetch holiday: ${response.status}`);
     return await response.json();
   },
@@ -235,18 +248,18 @@ export const recipeManagementApiService = {
   },
 
   async fetchHolidaysInRange(startDate, endDate) {
-    const response = await fetch(`${API_ROOT}/api/holidays/range?startDate=${startDate}&endDate=${endDate}`, {
+    const response = await userScopedFetch(`${API_ROOT}/api/holidays/range?startDate=${startDate}&endDate=${endDate}`, {
       method: 'GET',
-      headers: userScopedHeaders({ 'Accept': 'application/json' })
+      headers: { Accept: 'application/json' }
     });
     if (!response.ok) throw new Error(`Failed to fetch holidays in range: ${response.status}`);
     return await response.json();
   },
 
   async fetchHolidayShoppingList(holidayId) {
-    const response = await fetch(`${API_ROOT}/api/holidays/${holidayId}/shopping-list`, {
+    const response = await userScopedFetch(`${API_ROOT}/api/holidays/${holidayId}/shopping-list`, {
       method: 'GET',
-      headers: userScopedHeaders({ 'Accept': 'application/json' })
+      headers: { Accept: 'application/json' }
     });
     if (!response.ok) throw new Error(`Failed to fetch holiday shopping list: ${response.status}`);
     return await response.json();

@@ -1,5 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
-import { recipeManagementApiService } from '../services/recipeManagementApiService';
+import { useMemo } from 'react';
+
+/** Matches {@code DashboardStatsService} per-meal heuristics for instant UI updates. */
+const ESTIMATED_CALORIES_PER_MEAL = 650;
+const ESTIMATED_PROTEIN_GRAMS_PER_MEAL = 30;
+const ESTIMATED_CARBS_GRAMS_PER_MEAL = 75;
+const ESTIMATED_FAT_GRAMS_PER_MEAL = 24;
+
+function buildNutritionEstimate(plannedMealCount) {
+  return {
+    calories: plannedMealCount * ESTIMATED_CALORIES_PER_MEAL,
+    proteinGrams: plannedMealCount * ESTIMATED_PROTEIN_GRAMS_PER_MEAL,
+    carbsGrams: plannedMealCount * ESTIMATED_CARBS_GRAMS_PER_MEAL,
+    fatGrams: plannedMealCount * ESTIMATED_FAT_GRAMS_PER_MEAL,
+  };
+}
 
 /**
  * PlateWise Dashboard page giving the chef a welcoming summary,
@@ -10,48 +24,38 @@ import { recipeManagementApiService } from '../services/recipeManagementApiServi
 export const DashboardView = ({
   recipeListPayload,
   plannedMeals,
-  mealPlansRevision,
+  stats,
+  isLoadingStats,
   setActiveNavigationTab,
-  weekStartDateString,
-  weekEndDateString,
   onOpenRecipeDetails,
 }) => {
-  const [stats, setStats] = useState(null);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
-
   const formattedToday = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   });
 
-  const loadStats = useCallback(async () => {
-    if (!weekStartDateString || !weekEndDateString) return;
-    setIsLoadingStats(true);
-    try {
-      const dashboardStatsData = await recipeManagementApiService.fetchDashboardStats(weekStartDateString, weekEndDateString);
-      setStats(dashboardStatsData);
-    } catch (error) {
-      console.error('Error loading dashboard stats:', error);
-      setStats(null);
-    } finally {
-      setIsLoadingStats(false);
-    }
-  }, [weekStartDateString, weekEndDateString, mealPlansRevision]);
+  const localPlannedCount = useMemo(
+    () => Object.values(plannedMeals).filter(Boolean).length,
+    [plannedMeals]
+  );
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadStats();
-  }, [loadStats]);
-
-  // Fallbacks derived locally so cards still show meaningful values if the
-  // stats request is in flight or fails.
   const totalRecipes = stats?.totalRecipes ?? recipeListPayload.length;
   const favoriteRecipes = stats?.favoriteRecipes ?? recipeListPayload.filter((recipeItem) => recipeItem.isFavorited).length;
-  const totalPlannedMeals = stats?.plannedMealsThisWeek ?? Object.values(plannedMeals).filter(Boolean).length;
+  const totalPlannedMeals = Math.max(stats?.plannedMealsThisWeek ?? 0, localPlannedCount);
   const totalItemsToBuy = stats?.distinctShoppingItems ?? 0;
 
-  const nutrition = stats?.weeklyNutrition ?? { calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0 };
+  const nutrition = useMemo(() => {
+    const apiNutrition = stats?.weeklyNutrition;
+    const apiPlannedCount = stats?.plannedMealsThisWeek ?? 0;
+
+    if (apiNutrition && apiPlannedCount >= localPlannedCount) {
+      return apiNutrition;
+    }
+
+    return buildNutritionEstimate(totalPlannedMeals);
+  }, [stats, localPlannedCount, totalPlannedMeals]);
+
   const macros = [
     { key: 'protein', label: 'Protein', grams: nutrition.proteinGrams, className: 'macro-protein' },
     { key: 'carbs', label: 'Carbs', grams: nutrition.carbsGrams, className: 'macro-carbs' },
@@ -127,7 +131,7 @@ export const DashboardView = ({
           <h3>Weekly nutrition</h3>
           <span className="dashboard-panel-note">Rough estimate</span>
         </div>
-        {isLoadingStats && stats === null ? (
+        {isLoadingStats && stats === null && localPlannedCount === 0 ? (
           <div className="nutrition-skeleton">
             <span className="skeleton-line" style={{ width: '30%' }} />
             <span className="skeleton-line" style={{ width: '60%' }} />

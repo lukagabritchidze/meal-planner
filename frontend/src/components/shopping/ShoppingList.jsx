@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { recipeManagementApiService } from '../../services/recipeManagementApiService';
 import { formatMeasurement } from '../../utils/measurementConverter';
 import { ShoppingGroup } from './ShoppingGroup';
@@ -7,21 +7,24 @@ const DEPARTMENT_ORDER = ['Produce', 'Dairy', 'Meat', 'Pantry', 'Other'];
 
 /**
  * Page-level shopping list view for the selected week.
+ * List data is loaded in App.jsx and refreshed whenever meals are planned or removed.
  */
 export const ShoppingList = ({
-  mealPlansRevision,
+  groupedItems,
+  isLoading,
+  errorMessage: externalErrorMessage,
+  onReload,
   setCurrentWeekOffset,
   weekDates,
   formatDateString,
   onGoToPlanner,
 }) => {
-  const [groupedItems, setGroupedItems] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [localErrorMessage, setLocalErrorMessage] = useState('');
   const [copyConfirmation, setCopyConfirmation] = useState('');
 
   const startDate = formatDateString(weekDates[0]);
   const endDate = formatDateString(weekDates[6]);
+  const errorMessage = externalErrorMessage || localErrorMessage;
 
   const orderedGroups = useMemo(() => (
     DEPARTMENT_ORDER
@@ -43,44 +46,15 @@ export const ShoppingList = ({
       : `${firstMonth} ${firstDay} – ${lastMonth} ${lastDay}`;
   };
 
-  const loadShoppingList = useCallback(async () => {
-    setIsLoading(true);
-    setErrorMessage('');
-    try {
-      const shoppingListData = await recipeManagementApiService.fetchShoppingList(startDate, endDate);
-      setGroupedItems(shoppingListData || {});
-    } catch (error) {
-      console.error('Error loading shopping list:', error);
-      setErrorMessage('Unable to load your shopping list. Please check the backend connection and try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [startDate, endDate, mealPlansRevision]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadShoppingList();
-  }, [loadShoppingList]);
-
-  const updateItemCheckedState = (department, ingredientId, checked) => {
-    setGroupedItems((previous) => ({
-      ...previous,
-      [department]: (previous[department] || []).map((item) => (
-        item.ingredientId === ingredientId ? { ...item, checked } : item
-      )),
-    }));
-  };
-
-  const handleToggleItem = async (department, item) => {
-    const nextChecked = !item.checked;
-    updateItemCheckedState(department, item.ingredientId, nextChecked);
+  const handleToggleItem = async (_department, item) => {
+    setLocalErrorMessage('');
 
     try {
       await recipeManagementApiService.toggleShoppingListItem(item.ingredientId, startDate);
+      await onReload();
     } catch (error) {
       console.error('Error toggling shopping list item:', error);
-      updateItemCheckedState(department, item.ingredientId, item.checked);
-      setErrorMessage('Unable to update that item. Your change was rolled back.');
+      setLocalErrorMessage('Unable to update that item. Please try again.');
     }
   };
 
@@ -114,13 +88,13 @@ export const ShoppingList = ({
   };
 
   const handleResetList = async () => {
-    setErrorMessage('');
+    setLocalErrorMessage('');
     try {
       await recipeManagementApiService.clearCheckedShoppingListItems(startDate, endDate);
-      await loadShoppingList();
+      await onReload();
     } catch (error) {
       console.error('Error resetting shopping list:', error);
-      setErrorMessage('Unable to reset the shopping list right now. Please try again.');
+      setLocalErrorMessage('Unable to reset the shopping list right now. Please try again.');
     }
   };
 

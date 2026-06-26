@@ -53,6 +53,8 @@ function App() {
     setPlannedMeals({});
     setWeekHolidays([]);
     setSelectedHolidayId(null);
+    setShoppingListData({});
+    setDashboardStats(null);
   };
 
   const handleAuthSuccess = (userData) => {
@@ -140,11 +142,11 @@ function App() {
   const [plannedMeals, setPlannedMeals] = useState({});
   const [selectedHolidayId, setSelectedHolidayId] = useState(null);
   const [weekHolidays, setWeekHolidays] = useState([]);
-  const [mealPlansRevision, setMealPlansRevision] = useState(0);
-
-  const bumpMealPlansRevision = () => {
-    setMealPlansRevision((previous) => previous + 1);
-  };
+  const [shoppingListData, setShoppingListData] = useState({});
+  const [isShoppingListLoading, setIsShoppingListLoading] = useState(false);
+  const [shoppingListError, setShoppingListError] = useState('');
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [isDashboardStatsLoading, setIsDashboardStatsLoading] = useState(false);
 
   const getWeekDates = (offsetWeeks) => {
     const dates = [];
@@ -219,11 +221,58 @@ function App() {
         };
       });
       setPlannedMeals(map);
-      bumpMealPlansRevision();
     } catch (error) {
       console.error("Error loading meal plans from REST API:", error);
     }
   }, [currentUser?.id, weekStartDateString, weekEndDateString]);
+
+  const loadShoppingList = useCallback(async () => {
+    if (!currentUser?.id) {
+      setShoppingListData({});
+      return;
+    }
+
+    setIsShoppingListLoading(true);
+    setShoppingListError('');
+    try {
+      const shoppingListResponse = await recipeManagementApiService.fetchShoppingList(
+        weekStartDateString,
+        weekEndDateString
+      );
+      setShoppingListData(shoppingListResponse || {});
+    } catch (error) {
+      console.error('Error loading shopping list:', error);
+      setShoppingListError('Unable to load your shopping list. Please check the backend connection and try again.');
+      setShoppingListData({});
+    } finally {
+      setIsShoppingListLoading(false);
+    }
+  }, [currentUser?.id, weekStartDateString, weekEndDateString]);
+
+  const loadDashboardStats = useCallback(async () => {
+    if (!currentUser?.id) {
+      setDashboardStats(null);
+      return;
+    }
+
+    setIsDashboardStatsLoading(true);
+    try {
+      const statsResponse = await recipeManagementApiService.fetchDashboardStats(
+        weekStartDateString,
+        weekEndDateString
+      );
+      setDashboardStats(statsResponse);
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+      setDashboardStats(null);
+    } finally {
+      setIsDashboardStatsLoading(false);
+    }
+  }, [currentUser?.id, weekStartDateString, weekEndDateString]);
+
+  const refreshMealDerivedData = useCallback(async () => {
+    await Promise.all([loadShoppingList(), loadDashboardStats()]);
+  }, [loadShoppingList, loadDashboardStats]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -234,6 +283,11 @@ function App() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadWeekHolidays();
   }, [loadWeekHolidays]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refreshMealDerivedData();
+  }, [refreshMealDerivedData]);
 
   const handleViewHolidayPlan = useCallback((holiday) => {
     setSelectedHolidayId(holiday.holidayId);
@@ -355,7 +409,7 @@ function App() {
         });
         return hasChanges ? nextMeals : previousMeals;
       });
-      bumpMealPlansRevision();
+      await refreshMealDerivedData();
     } catch (error) {
       console.error(`Error deleting recipe ID ${recipeId}:`, error);
       alert("Failed to delete recipe. Please try again.");
@@ -386,7 +440,7 @@ function App() {
           mealPlanId: savedPlan.mealPlanId
         }
       }));
-      bumpMealPlansRevision();
+      await refreshMealDerivedData();
     } catch (error) {
       console.error("Error scheduling meal plan:", error);
       alert("Failed to schedule meal. Please try again.");
@@ -406,7 +460,7 @@ function App() {
         delete next[key];
         return next;
       });
-      bumpMealPlansRevision();
+      await refreshMealDerivedData();
     } catch (error) {
       console.error("Error removing meal plan:", error);
       alert("Failed to remove scheduled meal. Please try again.");
@@ -424,10 +478,9 @@ function App() {
             key={currentUser.id}
             recipeListPayload={recipeListPayload}
             plannedMeals={plannedMeals}
-            mealPlansRevision={mealPlansRevision}
+            stats={dashboardStats}
+            isLoadingStats={isDashboardStatsLoading}
             setActiveNavigationTab={setActiveNavigationTab}
-            weekStartDateString={weekStartDateString}
-            weekEndDateString={weekEndDateString}
             onOpenRecipeDetails={handleOpenRecipeDetails}
           />
         );
@@ -467,7 +520,10 @@ function App() {
         return (
           <ShoppingList
             key={currentUser.id}
-            mealPlansRevision={mealPlansRevision}
+            groupedItems={shoppingListData}
+            isLoading={isShoppingListLoading}
+            errorMessage={shoppingListError}
+            onReload={loadShoppingList}
             setCurrentWeekOffset={setCurrentWeekOffset}
             weekDates={weekDates}
             formatDateString={formatDateString}
