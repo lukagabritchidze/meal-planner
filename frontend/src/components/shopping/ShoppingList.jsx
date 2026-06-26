@@ -9,6 +9,7 @@ const DEPARTMENT_ORDER = ['Produce', 'Dairy', 'Meat', 'Pantry', 'Other'];
  * Page-level shopping list view for the selected week.
  */
 export const ShoppingList = ({
+  mealPlansRevision,
   setCurrentWeekOffset,
   weekDates,
   formatDateString,
@@ -54,7 +55,7 @@ export const ShoppingList = ({
     } finally {
       setIsLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, mealPlansRevision]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

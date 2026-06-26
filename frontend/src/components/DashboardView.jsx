@@ -10,6 +10,7 @@ import { recipeManagementApiService } from '../services/recipeManagementApiServi
 export const DashboardView = ({
   recipeListPayload,
   plannedMeals,
+  mealPlansRevision,
   setActiveNavigationTab,
   weekStartDateString,
   weekEndDateString,
@@ -36,7 +37,7 @@ export const DashboardView = ({
     } finally {
       setIsLoadingStats(false);
     }
-  }, [weekStartDateString, weekEndDateString]);
+  }, [weekStartDateString, weekEndDateString, mealPlansRevision]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

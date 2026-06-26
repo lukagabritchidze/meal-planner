@@ -140,6 +140,11 @@ function App() {
   const [plannedMeals, setPlannedMeals] = useState({});
   const [selectedHolidayId, setSelectedHolidayId] = useState(null);
   const [weekHolidays, setWeekHolidays] = useState([]);
+  const [mealPlansRevision, setMealPlansRevision] = useState(0);
+
+  const bumpMealPlansRevision = () => {
+    setMealPlansRevision((previous) => previous + 1);
+  };
 
   const getWeekDates = (offsetWeeks) => {
     const dates = [];
@@ -214,6 +219,7 @@ function App() {
         };
       });
       setPlannedMeals(map);
+      bumpMealPlansRevision();
     } catch (error) {
       console.error("Error loading meal plans from REST API:", error);
     }
@@ -349,6 +355,7 @@ function App() {
         });
         return hasChanges ? nextMeals : previousMeals;
       });
+      bumpMealPlansRevision();
     } catch (error) {
       console.error(`Error deleting recipe ID ${recipeId}:`, error);
       alert("Failed to delete recipe. Please try again.");
@@ -379,6 +386,7 @@ function App() {
           mealPlanId: savedPlan.mealPlanId
         }
       }));
+      bumpMealPlansRevision();
     } catch (error) {
       console.error("Error scheduling meal plan:", error);
       alert("Failed to schedule meal. Please try again.");
@@ -398,6 +406,7 @@ function App() {
         delete next[key];
         return next;
       });
+      bumpMealPlansRevision();
     } catch (error) {
       console.error("Error removing meal plan:", error);
       alert("Failed to remove scheduled meal. Please try again.");
@@ -415,6 +424,7 @@ function App() {
             key={currentUser.id}
             recipeListPayload={recipeListPayload}
             plannedMeals={plannedMeals}
+            mealPlansRevision={mealPlansRevision}
             setActiveNavigationTab={setActiveNavigationTab}
             weekStartDateString={weekStartDateString}
             weekEndDateString={weekEndDateString}
@@ -457,6 +467,7 @@ function App() {
         return (
           <ShoppingList
             key={currentUser.id}
+            mealPlansRevision={mealPlansRevision}
             setCurrentWeekOffset={setCurrentWeekOffset}
             weekDates={weekDates}
             formatDateString={formatDateString}
