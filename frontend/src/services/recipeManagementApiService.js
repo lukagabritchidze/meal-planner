@@ -27,7 +27,13 @@ function getCurrentUserId() {
  */
 function userScopedHeaders(extraHeaders = {}) {
   const userId = getCurrentUserId();
-  return userId != null ? { ...extraHeaders, 'X-User-Id': String(userId) } : { ...extraHeaders };
+  const headers = {
+    ...extraHeaders,
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  };
+  return userId != null ? { ...headers, 'X-User-Id': String(userId) } : headers;
 }
 
 export const recipeManagementApiService = {
