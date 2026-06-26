@@ -2,6 +2,8 @@
 
 **Live app:** [https://meal-planner-phi-six.vercel.app/](https://meal-planner-phi-six.vercel.app/)
 
+ It may need 30-60 seconds for cold start when web application is not opened for long time. Render free version did not have other option.
+
 ---
 
 ## Overview
