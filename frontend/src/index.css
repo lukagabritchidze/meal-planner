@@ -1533,7 +1533,7 @@ body,
     left: 0;
     bottom: 0;
     width: min(88vw, 320px);
-    z-index: 301;
+    z-index: 350;
     transform: translateX(-105%);
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     background: var(--bg-sidebar);
@@ -1978,7 +1978,7 @@ body,
   border-bottom: 1px solid var(--border-color);
   align-items: center;
   gap: 0.85rem;
-  z-index: 200;
+  z-index: 400;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
 }
 
@@ -2006,35 +2006,31 @@ body,
   position: fixed;
   inset: 0;
   background: rgba(15, 18, 12, 0.45);
-  z-index: 300;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.28s ease;
+  z-index: 250;
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
-}
-
-.mobile-sidebar-overlay.is-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.mobile-sidebar-header,
-.mobile-sidebar-close {
-  display: none;
 }
 
 body.mobile-menu-open {
   overflow: hidden;
 }
 
-.mobile-brand,
-.mobile-brand-icon,
-.mobile-brand-title,
-.mobile-user-actions,
-.mobile-user-avatar,
-.mobile-logout-btn {
-  display: none;
+/* Hide mobile-only chrome on desktop — sidebar stays fixed and visible */
+@media (min-width: 769px) {
+  .mobile-top-header,
+  .mobile-sidebar-overlay,
+  .mobile-sidebar-header,
+  .mobile-sidebar-close {
+    display: none !important;
+  }
+
+  .desktop-sidebar {
+    transform: none !important;
+  }
+
+  .sidebar-brand-desktop {
+    display: block;
+  }
 }
 
 /* ===================================================================

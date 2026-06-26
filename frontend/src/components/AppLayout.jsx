@@ -81,11 +81,13 @@ export const AppLayout = ({ activeNavigationTab, setActiveNavigationTab, current
         <PlateWiseLogo compact />
       </header>
 
-      <div
-        className={`mobile-sidebar-overlay ${isMobileMenuOpen ? 'is-visible' : ''}`}
-        onClick={closeMobileMenu}
-        aria-hidden={!isMobileMenuOpen}
-      />
+      {isMobileMenuOpen && (
+        <div
+          className="mobile-sidebar-overlay"
+          onClick={closeMobileMenu}
+          aria-hidden="false"
+        />
+      )}
 
       <aside
         id="app-sidebar"
