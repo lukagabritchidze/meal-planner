@@ -43,6 +43,7 @@ com\mealplanner\entity\User.class
 com\mealplanner\repository\RecipeRepository.class
 com\mealplanner\entity\ShoppingListCheckedState$ShoppingListCheckedStateBuilder.class
 com\mealplanner\config\ShoppingDepartmentConfiguration.class
+com\mealplanner\config\UserScopedCacheControlFilter.class
 com\mealplanner\entity\RecipeIngredient$RecipeIngredientBuilder.class
 com\mealplanner\entity\User$UserBuilder.class
 com\mealplanner\service\MeasurementConverter.class

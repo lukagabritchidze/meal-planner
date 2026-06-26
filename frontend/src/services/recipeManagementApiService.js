@@ -4,11 +4,27 @@
 const API_ROOT = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 const API_BASE_URL = `${API_ROOT}/api/recipes`;
 
+/** In-memory user id for the active session tab — avoids stale reads from shared localStorage. */
+let activeAuthenticatedUserId = null;
+
 /**
- * Reads the currently authenticated user's id from localStorage.
+ * Keeps the API service aligned with the React auth state for this browser tab.
+ *
+ * @param {{ id?: number } | null} user signed-in user object, or null on logout
+ */
+function setAuthenticatedUser(user) {
+  activeAuthenticatedUserId = user?.id ?? null;
+}
+
+/**
+ * Reads the currently authenticated user's id.
  * Returns null when no user is signed in.
  */
 function getCurrentUserId() {
+  if (activeAuthenticatedUserId != null) {
+    return activeAuthenticatedUserId;
+  }
+
   try {
     const saved = localStorage.getItem('platewise_authenticated_user');
     return saved ? JSON.parse(saved).id : null;
@@ -37,6 +53,8 @@ function userScopedHeaders(extraHeaders = {}) {
 }
 
 export const recipeManagementApiService = {
+  setAuthenticatedUser,
+
   async fetchAllRecipes(categoryFilter = null) {
     let url = API_BASE_URL;
     if (categoryFilter && categoryFilter.trim() !== '' && categoryFilter !== 'All') {

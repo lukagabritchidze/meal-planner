@@ -2,6 +2,7 @@ C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\config\C
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\config\InitialDataSeeder.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\config\PasswordHasher.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\config\ShoppingDepartmentConfiguration.java
+C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\config\UserScopedCacheControlFilter.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\controller\AuthRestController.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\controller\DashboardController.java
 C:\Users\user\Desktop\MealPlanner\backend\src\main\java\com\mealplanner\controller\HolidayController.java

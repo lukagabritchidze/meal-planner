@@ -22,14 +22,50 @@ function App() {
     }
   });
 
+  // Keep the API layer scoped to the signed-in user for this tab.
+  useEffect(() => {
+    recipeManagementApiService.setAuthenticatedUser(currentUser);
+  }, [currentUser]);
+
+  // When another tab logs in/out, sync auth state and reload user-specific data.
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key !== 'platewise_authenticated_user') return;
+
+      let nextUser = null;
+      if (event.newValue) {
+        try {
+          nextUser = JSON.parse(event.newValue);
+        } catch (error) {
+          console.error('Error parsing authenticated user from storage event:', error);
+        }
+      }
+
+      recipeManagementApiService.setAuthenticatedUser(nextUser);
+      setCurrentUser(nextUser);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const clearUserScopedState = () => {
+    setPlannedMeals({});
+    setWeekHolidays([]);
+    setSelectedHolidayId(null);
+  };
+
   const handleAuthSuccess = (userData) => {
+    recipeManagementApiService.setAuthenticatedUser(userData);
     setCurrentUser(userData);
     localStorage.setItem('platewise_authenticated_user', JSON.stringify(userData));
   };
 
   const handleLogout = () => {
+    recipeManagementApiService.setAuthenticatedUser(null);
     setCurrentUser(null);
     localStorage.removeItem('platewise_authenticated_user');
+    clearUserScopedState();
     setActiveNavigationTab('dashboard');
   };
 
@@ -143,6 +179,11 @@ function App() {
   }, [weekHolidays]);
 
   const loadWeekHolidays = useCallback(async () => {
+    if (!currentUser?.id) {
+      setWeekHolidays([]);
+      return;
+    }
+
     try {
       const holidays = await recipeManagementApiService.fetchHolidaysInRange(weekStartDateString, weekEndDateString);
       setWeekHolidays(holidays || []);
@@ -150,15 +191,18 @@ function App() {
       console.error('Error loading holidays for week:', error);
       setWeekHolidays([]);
     }
-  }, [weekStartDateString, weekEndDateString]);
+  }, [currentUser?.id, weekStartDateString, weekEndDateString]);
 
-  // Load planned meals from backend REST API
-  const loadMealPlans = async () => {
+  // Load planned meals from backend REST API for the signed-in user only.
+  const loadMealPlans = useCallback(async () => {
+    if (!currentUser?.id) {
+      setPlannedMeals({});
+      return;
+    }
+
     try {
-      const startDateStr = formatDateString(weekDates[0]);
-      const endDateStr = formatDateString(weekDates[6]);
-      const plans = await recipeManagementApiService.fetchMealPlans(startDateStr, endDateStr);
-      
+      const plans = await recipeManagementApiService.fetchMealPlans(weekStartDateString, weekEndDateString);
+
       const map = {};
       plans.forEach(plan => {
         // Camel case slot type, e.g. "BREAKFAST" -> "Breakfast"
@@ -173,14 +217,12 @@ function App() {
     } catch (error) {
       console.error("Error loading meal plans from REST API:", error);
     }
-  };
+  }, [currentUser?.id, weekStartDateString, weekEndDateString]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadMealPlans();
-    // loadMealPlans closes over the current computed week range.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentWeekOffset]);
+  }, [loadMealPlans]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -370,6 +412,7 @@ function App() {
       case 'dashboard':
         return (
           <DashboardView
+            key={currentUser.id}
             recipeListPayload={recipeListPayload}
             plannedMeals={plannedMeals}
             setActiveNavigationTab={setActiveNavigationTab}
@@ -413,6 +456,7 @@ function App() {
       case 'shopping':
         return (
           <ShoppingList
+            key={currentUser.id}
             setCurrentWeekOffset={setCurrentWeekOffset}
             weekDates={weekDates}
             formatDateString={formatDateString}
@@ -423,6 +467,7 @@ function App() {
       case 'holidays':
         return (
           <HolidayManager
+            key={currentUser.id}
             recipeListPayload={recipeListPayload}
             selectedHolidayId={selectedHolidayId}
             onSelectedHolidayChange={setSelectedHolidayId}

@@ -3,7 +3,6 @@ package com.mealplanner.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
-import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "meal_plan")
@@ -24,7 +23,6 @@ public class MealPlan {
      * to a single user so that planners are never shared across accounts.
      */
     @Column(name = "user_id", nullable = false)
-    @ColumnDefault("1")
     private Long userId;
 
     @Column(name = "planned_date", nullable = false)
